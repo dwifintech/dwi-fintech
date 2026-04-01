@@ -1,8 +1,8 @@
 {
   "users": [],
   "plans": [
-    {"name":"Internet","type":"Low Risk","risk":"5-12%"},
-    {"name":"P2P","type":"Medium Risk","risk":"8-18%"},
-    {"name":"Futures","type":"High Risk","risk":"-10% to 25%"}
+    { "name": "Internet Basic", "type": "internet", "risk": "low" },
+    { "name": "P2P Standard", "type": "p2p", "risk": "medium" },
+    { "name": "Futures Pro", "type": "futures", "risk": "high" }
   ]
 }
