@@ -1,187 +1,290 @@
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs");
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DWI Fintech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+  <style>
+    body {
+      margin:0;
+      font-family:'Segoe UI', Arial;
+      background:#0b0e11;
+      color:#eaecef;
+    }
 
-let db = {
-  users: [],
-  investments: [],
-  withdrawals: [],
-  plans: [
-    { name: "Internet Basic", min: 50, lock: 30, type: "Internet", risk: "Low-Medium" },
-    { name: "P2P Basic", min: 50, lock: 30, type: "P2P", risk: "Low" },
-    { name: "Spot Basic", min: 50, lock: 30, type: "Spot", risk: "Medium" },
-    { name: "Futures Basic", min: 50, lock: 30, type: "Futures", risk: "High" },
-    { name: "Sports Basic", min: 50, lock: 30, type: "Sports", risk: "Medium" }
-  ]
-};
+    /* TOPBAR */
+    .topbar {
+      background:#11161c;
+      padding:15px 25px;
+      display:flex;
+      justify-content:space-between;
+      border-bottom:1px solid #1f2933;
+    }
 
-if (fs.existsSync("db.json")) {
-  db = JSON.parse(fs.readFileSync("db.json"));
+    .logo {
+      color:#f0b90b;
+      font-weight:600;
+      font-size:18px;
+    }
+
+    /* LAYOUT */
+    .container { display:flex; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width:220px;
+      background:#11161c;
+      height:100vh;
+      border-right:1px solid #1f2933;
+    }
+
+    .menu {
+      padding:12px 20px;
+      cursor:pointer;
+      color:#9ca3af;
+      font-size:14px;
+    }
+
+    .menu:hover {
+      background:#1a222d;
+      color:white;
+    }
+
+    /* MAIN */
+    .main {
+      flex:1;
+      padding:25px;
+    }
+
+    .card {
+      background:#11161c;
+      padding:20px;
+      border-radius:10px;
+      margin-bottom:20px;
+      border:1px solid #1f2933;
+    }
+
+    /* BUTTON */
+    .btn {
+      background:#f0b90b;
+      border:none;
+      padding:10px 15px;
+      border-radius:5px;
+      cursor:pointer;
+      font-weight:500;
+    }
+
+    .btn:hover {
+      background:#ffd34d;
+    }
+
+    input {
+      padding:10px;
+      margin:5px 0;
+      width:220px;
+      background:#1a222d;
+      border:none;
+      color:white;
+      border-radius:5px;
+    }
+
+    canvas {
+      margin-top:15px;
+      background:#0b0e11;
+      border-radius:10px;
+      padding:10px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <div class="logo">DWI FINTECH</div>
+  <div>
+    <a href="about.html" style="color:#f0b90b; margin-right:15px;">About</a>
+    <button class="btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="sidebar">
+  <div class="menu" onclick="show('dashboard')">Dashboard</div>
+  <div class="menu" onclick="show('invest')">Invest</div>
+  <div class="menu" onclick="show('charts')">Performance</div>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="card">
+  <h2>Portfolio Overview</h2>
+
+  <p>Total Invested: $<span id="invested">0</span></p>
+  <p>Total Profit: $<span id="profit">0</span></p>
+  <p>Available Balance: $<span id="available">0</span></p>
+
+  <button class="btn" onclick="loadDashboard()">Refresh</button>
+</div>
+
+<!-- INVEST -->
+<div id="invest" class="card" style="display:none">
+  <h2>Investment Plans</h2>
+
+  <button class="btn" onclick="loadPlans()">Load Plans</button>
+
+  <div id="plans"></div>
+
+  <h3 style="margin-top:20px;">Start Investment</h3>
+
+  <input id="amount" placeholder="Enter Amount"><br>
+  <input id="plan" placeholder="Plan Name"><br>
+
+  <button class="btn" onclick="invest()">Invest Now</button>
+</div>
+
+<!-- CHART -->
+<div id="charts" class="card" style="display:none">
+  <h2>Performance Analytics</h2>
+
+  <button class="btn" onclick="loadInvestments()">Load Investments</button>
+
+  <div id="investments"></div>
+
+  <canvas id="chart"></canvas>
+</div>
+
+</div>
+</div>
+
+<script>
+
+const API = "https://dwi-fintech.onrender.com";
+
+let email = localStorage.getItem("email");
+
+// redirect if not logged in
+if(!email){
+  window.location = "index.html";
 }
 
-function saveDB() {
-  fs.writeFileSync("db.json", JSON.stringify(db, null, 2));
+// logout
+function logout(){
+  localStorage.removeItem("email");
+  window.location = "index.html";
 }
 
-// 🎲 DAILY RETURNS
-function rand(min, max) {
-  return Math.random() * (max - min) + min;
+// navigation
+function show(p){
+  document.getElementById("dashboard").style.display="none";
+  document.getElementById("invest").style.display="none";
+  document.getElementById("charts").style.display="none";
+
+  document.getElementById(p).style.display="block";
 }
 
-function getDailyReturn(type) {
-  if (type === "Internet") return rand(0.001, 0.0027);
-  if (type === "P2P") return rand(0.0007, 0.002);
-  if (type === "Spot") return rand(-0.002, 0.004);
-  if (type === "Futures") return rand(-0.005, 0.008);
-  if (type === "Sports") return rand(-0.002, 0.005);
-}
-
-// REGISTER
-app.post("/register", (req, res) => {
-  const { email, password } = req.body;
-  db.users.push({ email, password, balance: 0 });
-  saveDB();
-  res.send("Registered");
-});
-
-// LOGIN
-app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-  let user = db.users.find(u => u.email === email && u.password === password);
-  if (!user) return res.status(400).send("Invalid login");
-  res.json(user);
-});
-
-// DEPOSIT
-app.post("/deposit", (req, res) => {
-  const { email, amount } = req.body;
-  let user = db.users.find(u => u.email === email);
-  user.balance += Number(amount);
-  saveDB();
-  res.send("Deposit successful");
-});
-
-// PLANS
-app.get("/plans", (req, res) => {
-  res.json(db.plans);
-});
-
-// INVEST
-app.post("/invest", (req, res) => {
-  const { email, amount, planName } = req.body;
-
-  let user = db.users.find(u => u.email === email);
-  let plan = db.plans.find(p => p.name === planName);
-
-  if (!user || !plan) return res.status(400).send("Invalid");
-  if (user.balance < amount) return res.status(400).send("Insufficient");
-
-  user.balance -= amount;
-
-  db.investments.push({
-    email,
-    amount,
-    type: plan.type,
-    risk: plan.risk,
-    lock: plan.lock,
-    start: Date.now(),
-    history: [],
-    withdrawn: 0
+// dashboard
+async function loadDashboard(){
+  let res = await fetch(API + "/dashboard",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email})
   });
 
-  saveDB();
-  res.send("Investment started");
-});
+  let d = await res.json();
 
-// CALCULATE PROFIT
-function calculateProfit(inv) {
-  let days = Math.floor((Date.now() - inv.start) / (1000*60*60*24));
-
-  for (let i = inv.history.length; i < days; i++) {
-    inv.history.push(getDailyReturn(inv.type));
-  }
-
-  let total = inv.history.reduce((s, r) => s + r, 0);
-  return inv.amount * total;
+  invested.innerText = d.totalInvested;
+  profit.innerText = d.totalProfit;
+  available.innerText = d.available;
 }
 
-// DASHBOARD
-app.post("/dashboard", (req, res) => {
-  const { email } = req.body;
+// plans
+async function loadPlans(){
+  let res = await fetch(API + "/plans");
+  let data = await res.json();
 
-  let inv = db.investments.filter(i => i.email === email);
-
-  let totalInvested = 0;
-  let totalProfit = 0;
-  let withdrawn = 0;
-
-  inv.forEach(i => {
-    let profit = calculateProfit(i);
-    totalInvested += i.amount;
-    totalProfit += profit;
-    withdrawn += i.withdrawn;
+  let html = "";
+  data.forEach(p=>{
+    html += `
+      <p>
+        <strong>${p.name}</strong> 
+        (${p.type}) - ${p.risk}
+      </p>
+    `;
   });
 
-  res.json({
-    totalInvested: totalInvested.toFixed(2),
-    totalProfit: totalProfit.toFixed(2),
-    withdrawn: withdrawn.toFixed(2),
-    available: (totalProfit - withdrawn).toFixed(2)
-  });
-});
+  plans.innerHTML = html;
+}
 
-// INVESTMENTS
-app.post("/my-investments", (req, res) => {
-  const { email } = req.body;
-
-  let data = db.investments.filter(i => i.email === email);
-
-  let result = data.map(i => {
-    let profit = calculateProfit(i);
-    return {
-      type: i.type,
-      amount: i.amount,
-      profit: profit.toFixed(2),
-      days: i.history.length
-    };
+// invest
+async function invest(){
+  let res = await fetch(API + "/invest",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      email,
+      amount:amount.value,
+      planName:plan.value
+    })
   });
 
-  saveDB();
-  res.json(result);
-});
+  alert(await res.text());
+}
 
-// CHART
-app.post("/chart", (req, res) => {
-  const { email, index } = req.body;
-  let inv = db.investments.filter(i => i.email === email)[index];
-  calculateProfit(inv);
-  res.json(inv.history);
-});
+// load investments
+async function loadInvestments(){
+  let res = await fetch(API + "/my-investments",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email})
+  });
 
-// WITHDRAW
-app.post("/withdraw-profit", (req, res) => {
-  const { email, index } = req.body;
+  let data = await res.json();
 
-  let inv = db.investments[index];
-  let user = db.users.find(u => u.email === email);
+  let html="";
+  data.forEach((i,index)=>{
+    html += `
+      <p>
+        ${i.type} - $${i.amount} 
+        | Profit: $${i.profit}
+        <button class="btn" onclick="loadChart(${index})">View</button>
+      </p>
+    `;
+  });
 
-  let days = Math.floor((Date.now() - inv.start) / (1000*60*60*24));
-  if (days < inv.lock) return res.status(400).send("Still locked");
+  investments.innerHTML = html;
+}
 
-  let profit = calculateProfit(inv);
-  let available = profit - inv.withdrawn;
+// chart
+let chart;
 
-  if (available <= 0) return res.status(400).send("No profit");
+async function loadChart(index){
+  let res = await fetch(API + "/chart",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email,index})
+  });
 
-  user.balance += available;
-  inv.withdrawn += available;
+  let data = await res.json();
 
-  saveDB();
-  res.send("Withdrawn");
-});
+  if(chart) chart.destroy();
 
-app.listen(3000, () => console.log("Server running"));
+  chart = new Chart(document.getElementById("chart"),{
+    type:"line",
+    data:{
+      labels:data.map((_,i)=>"Day "+(i+1)),
+      datasets:[{
+        data:data,
+        borderColor:"#f0b90b",
+        tension:0.3
+      }]
+    }
+  });
+}
+
+</script>
+
+</body>
+</html>

@@ -1,317 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DWI FINTECH</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body {
-      margin:0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background:#0b0e11;
-      color:#eaecef;
-    }
-
-    /* TOPBAR */
-    .topbar {
-      background:#11161c;
-      padding:15px 30px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      border-bottom:1px solid #1f2933;
-    }
-
-    .logo {
-      color:#f0b90b;
-      font-weight:600;
-      font-size:20px;
-      letter-spacing:1px;
-    }
-
-    .balance {
-      font-size:14px;
-      color:#9ca3af;
-    }
-
-    /* LAYOUT */
-    .container {
-      display:flex;
-    }
-
-    /* SIDEBAR */
-    .sidebar {
-      width:220px;
-      background:#11161c;
-      height:100vh;
-      padding-top:20px;
-      border-right:1px solid #1f2933;
-    }
-
-    .menu {
-      padding:12px 20px;
-      cursor:pointer;
-      font-size:14px;
-      color:#9ca3af;
-    }
-
-    .menu:hover {
-      background:#1a222d;
-      color:#fff;
-    }
-
-    /* MAIN */
-    .main {
-      flex:1;
-      padding:30px;
-    }
-
-    /* CARD */
-    .card {
-      background:#11161c;
-      padding:25px;
-      margin-bottom:20px;
-      border-radius:12px;
-      border:1px solid #1f2933;
-    }
-
-    h2 {
-      margin-bottom:15px;
-      font-weight:500;
-    }
-
-    /* BUTTON */
-    .btn {
-      background:#f0b90b;
-      border:none;
-      padding:10px 18px;
-      border-radius:6px;
-      cursor:pointer;
-      font-weight:500;
-      transition:0.2s;
-    }
-
-    .btn:hover {
-      background:#ffd34d;
-    }
-
-    /* INPUT */
-    input {
-      width:220px;
-      padding:10px;
-      margin:8px 0;
-      background:#1a222d;
-      border:1px solid #2a3642;
-      color:white;
-      border-radius:6px;
-    }
-
-    /* PLAN LIST */
-    .plan {
-      padding:10px;
-      border-bottom:1px solid #1f2933;
-      font-size:14px;
-    }
-
-    /* CHART */
-    canvas {
-      margin-top:20px;
-      background:#0b0e11;
-      padding:10px;
-      border-radius:10px;
-    }
-
-    /* TRUST TEXT */
-    .note {
-      font-size:13px;
-      color:#9ca3af;
-      margin-top:10px;
-      line-height:1.6;
-    }
-
-  </style>
+<title>DWI Fintech</title>
+<style>
+body{background:#0b0e11;color:white;text-align:center;padding-top:100px;font-family:Arial}
+input{padding:10px;margin:5px;background:#1a222d;color:white;border:none}
+button{padding:10px;background:#f0b90b;border:none}
+</style>
 </head>
 
 <body>
 
-<div class="topbar">
-  <div class="logo">DWI FINTECH</div>
-  <div class="balance">Account Balance: $<span id="balance">0</span></div>
-</div>
+<h2>DWI FINTECH</h2>
 
-<div class="container">
+<input id="email" placeholder="Email"><br>
+<input id="password" type="password" placeholder="Password"><br>
 
-<div class="sidebar">
-  <div class="menu" onclick="show('dashboard')">Dashboard</div>
-  <div class="menu" onclick="show('invest')">Investments</div>
-  <div class="menu" onclick="show('chartPage')">Performance</div>
-</div>
-
-<div class="main">
-
-<!-- DASHBOARD -->
-<div id="dashboard" class="card">
-  <h2>Portfolio Overview</h2>
-
-  <p>Total Invested: $<span id="invested">0</span></p>
-  <p>Total Profit: $<span id="profit">0</span></p>
-  <p>Available Balance: $<span id="available">0</span></p>
-
-  <button class="btn" onclick="loadDashboard()">Refresh Data</button>
-
-  <div class="note">
-    Returns shown are estimates based on system performance and market conditions.
-  </div>
-</div>
-
-<!-- INVEST -->
-<div id="invest" class="card" style="display:none">
-  <h2>Investment Plans</h2>
-
-  <button class="btn" onclick="loadPlans()">Load Plans</button>
-
-  <div id="plans"></div>
-
-  <h3 style="margin-top:20px;">Start Investment</h3>
-
-  <input id="amount" placeholder="Investment Amount"><br>
-  <input id="plan" placeholder="Plan Name"><br>
-
-  <button class="btn" onclick="invest()">Invest Now</button>
-
-  <div class="note">
-    Investment returns vary depending on risk category and market performance.
-  </div>
-</div>
-
-<!-- CHART -->
-<div id="chartPage" class="card" style="display:none">
-  <h2>Performance Analytics</h2>
-
-  <button class="btn" onclick="loadInvestments()">Load Investments</button>
-
-  <div id="investments"></div>
-
-  <canvas id="chart"></canvas>
-
-  <div class="note">
-    Performance chart reflects simulated daily returns based on selected investment type.
-  </div>
-</div>
-
-</div>
-</div>
+<button onclick="login()">Login</button>
+<button onclick="register()">Register</button>
 
 <script>
+const API="https://dwi-fintech.onrender.com";
 
-let email = prompt("Enter your email");
-let chart;
-
-// NAVIGATION
-function show(p){
-  dashboard.style.display="none";
-  invest.style.display="none";
-  chartPage.style.display="none";
-  document.getElementById(p).style.display="block";
-}
-
-// DASHBOARD
-async function loadDashboard(){
-  let res = await fetch("http://127.0.0.1:3000/dashboard",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email})
-  });
-
-  let d = await res.json();
-
-  invested.innerText = d.totalInvested;
-  profit.innerText = d.totalProfit;
-  available.innerText = d.available;
-}
-
-// PLANS
-async function loadPlans(){
-  let res = await fetch("http://127.0.0.1:3000/plans");
-  let data = await res.json();
-
-  let html="";
-  data.forEach(p=>{
-    html += `
-      <div class="plan">
-        <strong>${p.name}</strong><br>
-        Type: ${p.type} | Risk: ${p.risk}
-      </div>
-    `;
-  });
-
-  plans.innerHTML = html;
-}
-
-// INVEST
-async function invest(){
-  let res = await fetch("http://127.0.0.1:3000/invest",{
+async function login(){
+  let res = await fetch(API+"/login",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      email,
-      amount:amount.value,
-      planName:plan.value
+      email:email.value,
+      password:password.value
+    })
+  });
+
+  let data = await res.json().catch(()=>null);
+
+  if(!data){ alert("Invalid login"); return; }
+
+  localStorage.setItem("email", data.email);
+  window.location="app.html";
+}
+
+async function register(){
+  let res = await fetch(API+"/register",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      email:email.value,
+      password:password.value
     })
   });
 
   alert(await res.text());
 }
-
-// INVESTMENTS
-async function loadInvestments(){
-  let res = await fetch("http://127.0.0.1:3000/my-investments",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email})
-  });
-
-  let data = await res.json();
-
-  let html="";
-  data.forEach((i,index)=>{
-    html += `
-      <p>
-        ${i.type} - $${i.amount}  
-        | Profit: $${i.profit}
-        <button class="btn" onclick="loadChart(${index})">View</button>
-      </p>
-    `;
-  });
-
-  investments.innerHTML = html;
-}
-
-// CHART
-async function loadChart(index){
-  let res = await fetch("http://127.0.0.1:3000/chart",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email,index})
-  });
-
-  let data = await res.json();
-
-  if(chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("chart"),{
-    type:"line",
-    data:{
-      labels:data.map((_,i)=>"Day "+(i+1)),
-      datasets:[{
-        data:data,
-        borderColor:"#f0b90b",
-        tension:0.3
-      }]
-    }
-  });
-}
-
 </script>
 
 </body>

@@ -1,28 +1,8 @@
 {
-  "users": [
-    {
-      "email": "dwisendgroup@gmail.com",
-      "password": "Doublewealth2",
-      "balance": 0,
-      "internet": {
-        "active": false,
-        "plan": null,
-        "expiry": null
-      }
-    }
-  ],
-  "deposits": [
-    {
-      "email": "dwisendgroup@gmail.com",
-      "amount": "",
-      "status": "pending"
-    }
-  ],
-  "withdrawals": [
-    {
-      "email": "dwisendgroup@gmail.com",
-      "amount": "",
-      "status": "pending"
-    }
+  "users": [],
+  "plans": [
+    {"name":"Internet","type":"Low Risk","risk":"5-12%"},
+    {"name":"P2P","type":"Medium Risk","risk":"8-18%"},
+    {"name":"Futures","type":"High Risk","risk":"-10% to 25%"}
   ]
 }
