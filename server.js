@@ -87,21 +87,14 @@ app.post("/invest", (req, res) => {
   res.send("Investment successful");
 });
 
-// MY INVESTMENTS
-app.post("/my-investments", (req, res) => {
-  let db = loadDB();
-  let user = db.users.find(u => u.email === req.body.email);
-
-  res.json(user.investments);
-});
-
-// ================== WALLET ==================
+// ================= WALLET =================
 
 // DEPOSIT REQUEST
 app.post("/deposit", (req, res) => {
   let db = loadDB();
 
   db.deposits.push({
+    id: Date.now(),
     email: req.body.email,
     amount: Number(req.body.amount),
     status: "pending"
@@ -109,6 +102,28 @@ app.post("/deposit", (req, res) => {
 
   saveDB(db);
   res.send("Deposit request submitted");
+});
+
+// GET ALL DEPOSITS
+app.get("/admin/deposits", (req, res) => {
+  let db = loadDB();
+  res.json(db.deposits);
+});
+
+// APPROVE DEPOSIT
+app.post("/admin/approve-deposit", (req, res) => {
+  let db = loadDB();
+
+  let dep = db.deposits.find(d => d.id == req.body.id);
+  if (!dep || dep.status !== "pending") return res.send("Invalid");
+
+  let user = db.users.find(u => u.email === dep.email);
+
+  user.balance += dep.amount;
+  dep.status = "approved";
+
+  saveDB(db);
+  res.send("Deposit approved");
 });
 
 // WITHDRAW REQUEST
@@ -123,13 +138,36 @@ app.post("/withdraw", (req, res) => {
   }
 
   db.withdrawals.push({
+    id: Date.now(),
     email: req.body.email,
     amount,
     status: "pending"
   });
 
   saveDB(db);
-  res.send("Withdrawal request submitted");
+  res.send("Withdrawal requested");
+});
+
+// GET WITHDRAWALS
+app.get("/admin/withdrawals", (req, res) => {
+  let db = loadDB();
+  res.json(db.withdrawals);
+});
+
+// APPROVE WITHDRAWAL
+app.post("/admin/approve-withdraw", (req, res) => {
+  let db = loadDB();
+
+  let w = db.withdrawals.find(d => d.id == req.body.id);
+  if (!w || w.status !== "pending") return res.send("Invalid");
+
+  let user = db.users.find(u => u.email === w.email);
+
+  user.balance -= w.amount;
+  w.status = "approved";
+
+  saveDB(db);
+  res.send("Withdrawal approved");
 });
 
 const PORT = process.env.PORT || 3000;

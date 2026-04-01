@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+</head>
+
+<body>
+
+<h2>Admin Panel</h2>
+
+<h3>Deposits</h3>
+<div id="deposits"></div>
+
+<h3>Withdrawals</h3>
+<div id="withdrawals"></div>
+
+<script>
+const API="https://dwi-fintech.onrender.com";
+
+async function loadDeposits(){
+  let res = await fetch(API+"/admin/deposits");
+  let data = await res.json();
+
+  deposits.innerHTML=data.map(d=>
+    `<p>${d.email} $${d.amount} (${d.status})
+    <button onclick="approveDeposit(${d.id})">Approve</button></p>`
+  ).join("");
+}
+
+async function approveDeposit(id){
+  await fetch(API+"/admin/approve-deposit",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id})
+  });
+  loadDeposits();
+}
+
+async function loadWithdrawals(){
+  let res = await fetch(API+"/admin/withdrawals");
+  let data = await res.json();
+
+  withdrawals.innerHTML=data.map(w=>
+    `<p>${w.email} $${w.amount} (${w.status})
+    <button onclick="approveWithdraw(${w.id})">Approve</button></p>`
+  ).join("");
+}
+
+async function approveWithdraw(id){
+  await fetch(API+"/admin/approve-withdraw",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id})
+  });
+  loadWithdrawals();
+}
+
+loadDeposits();
+loadWithdrawals();
+</script>
+
+</body>
+</html>
