@@ -1,0 +1,28 @@
+{
+  "users": [
+    {
+      "email": "dwisendgroup@gmail.com",
+      "password": "Doublewealth2",
+      "balance": 0,
+      "internet": {
+        "active": false,
+        "plan": null,
+        "expiry": null
+      }
+    }
+  ],
+  "deposits": [
+    {
+      "email": "dwisendgroup@gmail.com",
+      "amount": "",
+      "status": "pending"
+    }
+  ],
+  "withdrawals": [
+    {
+      "email": "dwisendgroup@gmail.com",
+      "amount": "",
+      "status": "pending"
+    }
+  ]
+}
