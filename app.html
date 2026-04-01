@@ -30,6 +30,7 @@ input{padding:8px;margin:5px;background:#1a222d;color:white;border:none}
 <div class="sidebar">
   <div class="menu" onclick="show('dashboard')">Dashboard</div>
   <div class="menu" onclick="show('invest')">Invest</div>
+  <div class="menu" onclick="show('wallet')">Wallet</div>
   <div class="menu" onclick="show('charts')">Charts</div>
 </div>
 
@@ -53,6 +54,18 @@ input{padding:8px;margin:5px;background:#1a222d;color:white;border:none}
 <button onclick="invest()">Invest</button>
 </div>
 
+<div id="wallet" class="card" style="display:none">
+<h2>Wallet</h2>
+
+<h3>Deposit</h3>
+<input id="depAmount" placeholder="Amount">
+<button onclick="deposit()">Deposit</button>
+
+<h3>Withdraw</h3>
+<input id="withAmount" placeholder="Amount">
+<button onclick="withdraw()">Withdraw</button>
+</div>
+
 <div id="charts" class="card" style="display:none">
 <h2>Charts</h2>
 <button onclick="loadInvestments()">Load</button>
@@ -67,9 +80,7 @@ input{padding:8px;margin:5px;background:#1a222d;color:white;border:none}
 const API="https://dwi-fintech.onrender.com";
 let email = localStorage.getItem("email");
 
-if(!email){
-  window.location="index.html";
-}
+if(!email){ window.location="index.html"; }
 
 function logout(){
   localStorage.removeItem("email");
@@ -77,10 +88,9 @@ function logout(){
 }
 
 function show(p){
-  document.getElementById("dashboard").style.display="none";
-  document.getElementById("invest").style.display="none";
-  document.getElementById("charts").style.display="none";
-
+  ["dashboard","invest","wallet","charts"].forEach(id=>{
+    document.getElementById(id).style.display="none";
+  });
   document.getElementById(p).style.display="block";
 }
 
@@ -90,7 +100,6 @@ async function loadDashboard(){
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({email})
   });
-
   let d = await res.json();
 
   invested.innerText=d.totalInvested;
@@ -102,12 +111,7 @@ async function loadPlans(){
   let res = await fetch(API+"/plans");
   let data = await res.json();
 
-  let html="";
-  data.forEach(p=>{
-    html += `<p>${p.name} (${p.type})</p>`;
-  });
-
-  plans.innerHTML=html;
+  plans.innerHTML=data.map(p=>`<p>${p.name}</p>`).join("");
 }
 
 async function invest(){
@@ -124,40 +128,30 @@ async function invest(){
   alert(await res.text());
 }
 
-async function loadInvestments(){
-  let res = await fetch(API+"/my-investments",{
+async function deposit(){
+  let res = await fetch(API+"/deposit",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email})
+    body:JSON.stringify({
+      email,
+      amount:depAmount.value
+    })
   });
 
-  let data = await res.json();
-
-  let html="";
-  data.forEach((i,index)=>{
-    html += `<p>${i.type} $${i.amount} Profit:$${i.profit}
-    <button onclick="loadChart(${index})">View</button></p>`;
-  });
-
-  investments.innerHTML=html;
+  alert(await res.text());
 }
 
-async function loadChart(index){
-  let res = await fetch(API+"/chart",{
+async function withdraw(){
+  let res = await fetch(API+"/withdraw",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email,index})
+    body:JSON.stringify({
+      email,
+      amount:withAmount.value
+    })
   });
 
-  let data = await res.json();
-
-  new Chart(document.getElementById("chart"),{
-    type:"line",
-    data:{
-      labels:data.map((_,i)=>"Day "+(i+1)),
-      datasets:[{data:data,borderColor:"#f0b90b"}]
-    }
-  });
+  alert(await res.text());
 }
 
 </script>

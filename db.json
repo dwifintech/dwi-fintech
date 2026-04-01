@@ -4,5 +4,7 @@
     { "name": "Internet Basic", "type": "internet", "risk": "low" },
     { "name": "P2P Standard", "type": "p2p", "risk": "medium" },
     { "name": "Futures Pro", "type": "futures", "risk": "high" }
-  ]
+  ],
+  "deposits": [],
+  "withdrawals": []
 }

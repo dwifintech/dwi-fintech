@@ -1,11 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>DWI Fintech</title>
+<title>DWI Fintech - Login</title>
+
 <style>
-body{background:#0b0e11;color:white;text-align:center;padding-top:100px;font-family:Arial}
-input{padding:10px;margin:5px;background:#1a222d;color:white;border:none}
-button{padding:10px;background:#f0b90b;border:none}
+body{
+  background:#0b0e11;
+  color:white;
+  text-align:center;
+  padding-top:100px;
+  font-family:Arial;
+}
+input{
+  padding:10px;
+  margin:5px;
+  background:#1a222d;
+  color:white;
+  border:none;
+}
+button{
+  padding:10px;
+  background:#f0b90b;
+  border:none;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -20,37 +38,56 @@ button{padding:10px;background:#f0b90b;border:none}
 <button onclick="register()">Register</button>
 
 <script>
-const API="https://dwi-fintech.onrender.com";
+const API = "https://dwi-fintech.onrender.com";
 
 async function login(){
-  let res = await fetch(API+"/login",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email:email.value,
-      password:password.value
-    })
-  });
+  try {
+    let res = await fetch(API + "/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+      })
+    });
 
-  let data = await res.json().catch(()=>null);
+    let text = await res.text();
 
-  if(!data){ alert("Invalid login"); return; }
+    if(text === "Invalid login"){
+      alert("Invalid login");
+      return;
+    }
 
-  localStorage.setItem("email", data.email);
-  window.location="app.html";
+    let data = JSON.parse(text);
+
+    localStorage.setItem("email", data.email);
+
+    // 🔥 FORCE REDIRECT
+    window.location.href = "./app.html";
+
+  } catch (err) {
+    alert("Error connecting to server");
+    console.log(err);
+  }
 }
 
 async function register(){
-  let res = await fetch(API+"/register",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email:email.value,
-      password:password.value
-    })
-  });
+  try {
+    let res = await fetch(API + "/register", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+      })
+    });
 
-  alert(await res.text());
+    alert(await res.text());
+
+  } catch (err) {
+    alert("Error connecting to server");
+    console.log(err);
+  }
 }
 </script>
 

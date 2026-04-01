@@ -95,5 +95,42 @@ app.post("/my-investments", (req, res) => {
   res.json(user.investments);
 });
 
+// ================== WALLET ==================
+
+// DEPOSIT REQUEST
+app.post("/deposit", (req, res) => {
+  let db = loadDB();
+
+  db.deposits.push({
+    email: req.body.email,
+    amount: Number(req.body.amount),
+    status: "pending"
+  });
+
+  saveDB(db);
+  res.send("Deposit request submitted");
+});
+
+// WITHDRAW REQUEST
+app.post("/withdraw", (req, res) => {
+  let db = loadDB();
+  let user = db.users.find(u => u.email === req.body.email);
+
+  let amount = Number(req.body.amount);
+
+  if(user.balance < amount){
+    return res.send("Insufficient balance");
+  }
+
+  db.withdrawals.push({
+    email: req.body.email,
+    amount,
+    status: "pending"
+  });
+
+  saveDB(db);
+  res.send("Withdrawal request submitted");
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server running"));
