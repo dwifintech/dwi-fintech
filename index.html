@@ -1,94 +1,263 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>DWI Fintech - Login</title>
+<title>DWI Fintech</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
+  margin:0;
   background:#0b0e11;
   color:white;
-  text-align:center;
-  padding-top:100px;
   font-family:Arial;
 }
+
+.topbar{
+  background:#11161c;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.logo{
+  font-weight:bold;
+  color:#f0b90b;
+}
+
+.sidebar{
+  width:220px;
+  background:#11161c;
+  height:100vh;
+  float:left;
+}
+
+.menu{
+  padding:15px;
+  cursor:pointer;
+  border-bottom:1px solid #1a222d;
+}
+
+.menu:hover{
+  background:#1a222d;
+}
+
+.main{
+  margin-left:220px;
+  padding:20px;
+}
+
+.card{
+  background:#11161c;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+h2{
+  margin-top:0;
+}
+
+.balance{
+  font-size:28px;
+  color:#f0b90b;
+}
+
+button{
+  background:#f0b90b;
+  border:none;
+  padding:10px;
+  margin-top:10px;
+  cursor:pointer;
+  border-radius:5px;
+}
+
 input{
   padding:10px;
-  margin:5px;
+  margin:5px 0;
   background:#1a222d;
   color:white;
   border:none;
+  width:100%;
+  border-radius:5px;
 }
-button{
-  padding:10px;
-  background:#f0b90b;
-  border:none;
-  cursor:pointer;
+
+.transaction{
+  border-bottom:1px solid #1a222d;
+  padding:10px 0;
 }
 </style>
 </head>
 
 <body>
 
-<h2>DWI FINTECH</h2>
+<div class="topbar">
+  <div class="logo">DWI FINTECH</div>
+  <div>
+    <a href="about.html" style="color:#f0b90b">About</a>
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
 
-<input id="email" placeholder="Email"><br>
-<input id="password" type="password" placeholder="Password"><br>
+<div class="sidebar">
+  <div class="menu" onclick="show('dashboard')">Dashboard</div>
+  <div class="menu" onclick="show('wallet')">Wallet</div>
+  <div class="menu" onclick="show('invest')">Invest</div>
+  <div class="menu" onclick="show('history')">Transactions</div>
+  <div class="menu" onclick="show('charts')">Analytics</div>
+</div>
 
-<button onclick="login()">Login</button>
-<button onclick="register()">Register</button>
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="card">
+<h2>Dashboard</h2>
+<p>Available Balance</p>
+<div class="balance">$<span id="available">0</span></div>
+
+<button onclick="loadDashboard()">Refresh</button>
+</div>
+
+<!-- WALLET -->
+<div id="wallet" class="card" style="display:none">
+<h2>Wallet</h2>
+
+<h3>Deposit</h3>
+<input id="depAmount" placeholder="Enter amount">
+<button onclick="deposit()">Request Deposit</button>
+
+<h3>Withdraw</h3>
+<input id="withAmount" placeholder="Enter amount">
+<button onclick="withdraw()">Request Withdrawal</button>
+</div>
+
+<!-- INVEST -->
+<div id="invest" class="card" style="display:none">
+<h2>Invest</h2>
+
+<button onclick="loadPlans()">Load Plans</button>
+<div id="plans"></div>
+
+<input id="amount" placeholder="Amount">
+<input id="plan" placeholder="Plan Name">
+<button onclick="invest()">Invest</button>
+</div>
+
+<!-- TRANSACTIONS -->
+<div id="history" class="card" style="display:none">
+<h2>Transaction History</h2>
+<button onclick="loadHistory()">Refresh</button>
+<div id="historyList"></div>
+</div>
+
+<!-- CHARTS -->
+<div id="charts" class="card" style="display:none">
+<h2>Analytics</h2>
+<canvas id="chart"></canvas>
+</div>
+
+</div>
 
 <script>
-const API = "https://dwi-fintech.onrender.com";
 
-async function login(){
-  try {
-    let res = await fetch(API + "/login", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        email: document.getElementById("email").value,
-        password: document.getElementById("password").value
-      })
-    });
+const API="https://dwi-fintech.onrender.com";
+let email = localStorage.getItem("email");
 
-    let text = await res.text();
-
-    if(text === "Invalid login"){
-      alert("Invalid login");
-      return;
-    }
-
-    let data = JSON.parse(text);
-
-    localStorage.setItem("email", data.email);
-
-    // 🔥 FORCE REDIRECT
-    window.location.href = "./app.html";
-
-  } catch (err) {
-    alert("Error connecting to server");
-    console.log(err);
-  }
+if(!email){
+  window.location="index.html";
 }
 
-async function register(){
-  try {
-    let res = await fetch(API + "/register", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        email: document.getElementById("email").value,
-        password: document.getElementById("password").value
-      })
-    });
-
-    alert(await res.text());
-
-  } catch (err) {
-    alert("Error connecting to server");
-    console.log(err);
-  }
+function logout(){
+  localStorage.removeItem("email");
+  window.location="index.html";
 }
+
+function show(section){
+  ["dashboard","wallet","invest","history","charts"].forEach(id=>{
+    document.getElementById(id).style.display="none";
+  });
+  document.getElementById(section).style.display="block";
+}
+
+// DASHBOARD
+async function loadDashboard(){
+  let res = await fetch(API+"/dashboard",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email})
+  });
+
+  let data = await res.json();
+  available.innerText = data.available;
+}
+
+// DEPOSIT
+async function deposit(){
+  let res = await fetch(API+"/deposit",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      email,
+      amount:depAmount.value
+    })
+  });
+
+  alert(await res.text());
+}
+
+// WITHDRAW
+async function withdraw(){
+  let res = await fetch(API+"/withdraw",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      email,
+      amount:withAmount.value
+    })
+  });
+
+  alert(await res.text());
+}
+
+// INVEST
+async function loadPlans(){
+  let res = await fetch(API+"/plans");
+  let data = await res.json();
+
+  plans.innerHTML = data.map(p=>`<div class="transaction">${p.name}</div>`).join("");
+}
+
+async function invest(){
+  let res = await fetch(API+"/invest",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      email,
+      amount:amount.value,
+      planName:plan.value
+    })
+  });
+
+  alert(await res.text());
+}
+
+// HISTORY (basic combined view)
+async function loadHistory(){
+  let res = await fetch(API+"/my-investments",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email})
+  });
+
+  let data = await res.json();
+
+  historyList.innerHTML = data.map(i=>`
+    <div class="transaction">
+      ${i.type} - $${i.amount} (Profit: $${i.profit})
+    </div>
+  `).join("");
+}
+
 </script>
 
 </body>

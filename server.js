@@ -53,12 +53,7 @@ app.post("/dashboard", (req, res) => {
   let db = loadDB();
   let user = db.users.find(u => u.email === req.body.email);
 
-  let totalInvested = user.investments.reduce((a,b)=>a+b.amount,0);
-  let totalProfit = user.investments.reduce((a,b)=>a+b.profit,0);
-
   res.json({
-    totalInvested,
-    totalProfit,
     available: user.balance
   });
 });
@@ -80,7 +75,8 @@ app.post("/invest", (req, res) => {
   user.investments.push({
     type: req.body.planName,
     amount,
-    profit
+    profit,
+    date: new Date().toLocaleString()
   });
 
   saveDB(db);
@@ -89,44 +85,22 @@ app.post("/invest", (req, res) => {
 
 // ================= WALLET =================
 
-// DEPOSIT REQUEST
+// DEPOSIT
 app.post("/deposit", (req, res) => {
   let db = loadDB();
 
   db.deposits.push({
-    id: Date.now(),
     email: req.body.email,
     amount: Number(req.body.amount),
-    status: "pending"
+    status: "pending",
+    date: new Date().toLocaleString()
   });
 
   saveDB(db);
   res.send("Deposit request submitted");
 });
 
-// GET ALL DEPOSITS
-app.get("/admin/deposits", (req, res) => {
-  let db = loadDB();
-  res.json(db.deposits);
-});
-
-// APPROVE DEPOSIT
-app.post("/admin/approve-deposit", (req, res) => {
-  let db = loadDB();
-
-  let dep = db.deposits.find(d => d.id == req.body.id);
-  if (!dep || dep.status !== "pending") return res.send("Invalid");
-
-  let user = db.users.find(u => u.email === dep.email);
-
-  user.balance += dep.amount;
-  dep.status = "approved";
-
-  saveDB(db);
-  res.send("Deposit approved");
-});
-
-// WITHDRAW REQUEST
+// WITHDRAW
 app.post("/withdraw", (req, res) => {
   let db = loadDB();
   let user = db.users.find(u => u.email === req.body.email);
@@ -138,36 +112,31 @@ app.post("/withdraw", (req, res) => {
   }
 
   db.withdrawals.push({
-    id: Date.now(),
     email: req.body.email,
     amount,
-    status: "pending"
+    status: "pending",
+    date: new Date().toLocaleString()
   });
 
   saveDB(db);
   res.send("Withdrawal requested");
 });
 
-// GET WITHDRAWALS
-app.get("/admin/withdrawals", (req, res) => {
+// ================= HISTORY =================
+
+app.post("/history", (req, res) => {
   let db = loadDB();
-  res.json(db.withdrawals);
-});
+  let email = req.body.email;
 
-// APPROVE WITHDRAWAL
-app.post("/admin/approve-withdraw", (req, res) => {
-  let db = loadDB();
+  let deposits = db.deposits.filter(d => d.email === email);
+  let withdrawals = db.withdrawals.filter(w => w.email === email);
+  let investments = db.users.find(u => u.email === email).investments;
 
-  let w = db.withdrawals.find(d => d.id == req.body.id);
-  if (!w || w.status !== "pending") return res.send("Invalid");
-
-  let user = db.users.find(u => u.email === w.email);
-
-  user.balance -= w.amount;
-  w.status = "approved";
-
-  saveDB(db);
-  res.send("Withdrawal approved");
+  res.json({
+    deposits,
+    withdrawals,
+    investments
+  });
 });
 
 const PORT = process.env.PORT || 3000;

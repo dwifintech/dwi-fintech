@@ -1,160 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>DWI Fintech</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body{margin:0;background:#0b0e11;color:white;font-family:Arial}
-.topbar{padding:15px;background:#11161c;display:flex;justify-content:space-between}
-.sidebar{width:200px;background:#11161c;height:100vh;float:left}
-.menu{padding:10px;cursor:pointer}
-.menu:hover{background:#1a222d}
-.main{margin-left:200px;padding:20px}
-.card{background:#11161c;padding:20px;margin-bottom:20px}
-button{background:#f0b90b;border:none;padding:8px}
-input{padding:8px;margin:5px;background:#1a222d;color:white;border:none}
-</style>
-</head>
-
-<body>
-
-<div class="topbar">
-  <div>DWI FINTECH</div>
-  <div>
-    <a href="about.html" style="color:#f0b90b">About</a>
-    <button onclick="logout()">Logout</button>
-  </div>
-</div>
-
-<div class="sidebar">
-  <div class="menu" onclick="show('dashboard')">Dashboard</div>
-  <div class="menu" onclick="show('invest')">Invest</div>
-  <div class="menu" onclick="show('wallet')">Wallet</div>
-  <div class="menu" onclick="show('charts')">Charts</div>
-</div>
-
-<div class="main">
-
-<div id="dashboard" class="card">
-<h2>Dashboard</h2>
-<p>Invested: $<span id="invested">0</span></p>
-<p>Profit: $<span id="profit">0</span></p>
-<p>Available: $<span id="available">0</span></p>
-<button onclick="loadDashboard()">Refresh</button>
-</div>
-
-<div id="invest" class="card" style="display:none">
-<h2>Invest</h2>
-<button onclick="loadPlans()">Load Plans</button>
-<div id="plans"></div>
-
-<input id="amount" placeholder="Amount"><br>
-<input id="plan" placeholder="Plan Name"><br>
-<button onclick="invest()">Invest</button>
-</div>
-
-<div id="wallet" class="card" style="display:none">
-<h2>Wallet</h2>
-
-<h3>Deposit</h3>
-<input id="depAmount" placeholder="Amount">
-<button onclick="deposit()">Deposit</button>
-
-<h3>Withdraw</h3>
-<input id="withAmount" placeholder="Amount">
-<button onclick="withdraw()">Withdraw</button>
-</div>
-
-<div id="charts" class="card" style="display:none">
-<h2>Charts</h2>
-<button onclick="loadInvestments()">Load</button>
-<div id="investments"></div>
-<canvas id="chart"></canvas>
-</div>
-
-</div>
-
-<script>
-
-const API="https://dwi-fintech.onrender.com";
-let email = localStorage.getItem("email");
-
-if(!email){ window.location="index.html"; }
-
-function logout(){
-  localStorage.removeItem("email");
-  window.location="index.html";
-}
-
-function show(p){
-  ["dashboard","invest","wallet","charts"].forEach(id=>{
-    document.getElementById(id).style.display="none";
-  });
-  document.getElementById(p).style.display="block";
-}
-
-async function loadDashboard(){
-  let res = await fetch(API+"/dashboard",{
+async function loadHistory(){
+  let res = await fetch(API+"/history",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({email})
   });
-  let d = await res.json();
 
-  invested.innerText=d.totalInvested;
-  profit.innerText=d.totalProfit;
-  available.innerText=d.available;
-}
-
-async function loadPlans(){
-  let res = await fetch(API+"/plans");
   let data = await res.json();
 
-  plans.innerHTML=data.map(p=>`<p>${p.name}</p>`).join("");
-}
-
-async function invest(){
-  let res = await fetch(API+"/invest",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email,
-      amount:amount.value,
-      planName:plan.value
-    })
+  let html = "<h3>Deposits</h3>";
+  data.deposits.forEach(d=>{
+    html += `<div class="transaction">+ $${d.amount} (${d.status}) - ${d.date}</div>`;
   });
 
-  alert(await res.text());
-}
-
-async function deposit(){
-  let res = await fetch(API+"/deposit",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email,
-      amount:depAmount.value
-    })
+  html += "<h3>Withdrawals</h3>";
+  data.withdrawals.forEach(w=>{
+    html += `<div class="transaction">- $${w.amount} (${w.status}) - ${w.date}</div>`;
   });
 
-  alert(await res.text());
-}
-
-async function withdraw(){
-  let res = await fetch(API+"/withdraw",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email,
-      amount:withAmount.value
-    })
+  html += "<h3>Investments</h3>";
+  data.investments.forEach(i=>{
+    html += `<div class="transaction">${i.type} $${i.amount} Profit:$${i.profit} - ${i.date}</div>`;
   });
 
-  alert(await res.text());
+  historyList.innerHTML = html;
 }
-
-</script>
-
-</body>
-</html>
