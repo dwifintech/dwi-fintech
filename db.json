@@ -1,9 +1,29 @@
 {
   "users": [],
-  "plans": [
-    { "name": "Internet Basic", "type": "internet", "risk": "low" },
-    { "name": "P2P Standard", "type": "p2p", "risk": "medium" },
-    { "name": "Futures Pro", "type": "futures", "risk": "high" }
+  "plans": {
+    "hotspot": [
+      { "name": "DWIFI Daily", "price": 1000, "duration": "1 Day" },
+      { "name": "DWIFI Weekly", "price": 5000, "duration": "7 Days" }
+    ],
+    "pppoe": [
+      { "name": "Orange", "price": 20000, "users": 3 },
+      { "name": "Silver", "price": 25000, "users": 5 },
+      { "name": "Gold", "price": 35000, "users": 7 }
+    ]
+  },
+  "services": [
+    {
+      "name": "Spot Trading",
+      "description": "Buy and sell digital assets in real-time at market prices."
+    },
+    {
+      "name": "P2P Trading",
+      "description": "Trade directly with other users using secure escrow systems."
+    },
+    {
+      "name": "Internet Expansion Program",
+      "description": "Participate in the growth of network infrastructure and coverage."
+    }
   ],
   "deposits": [],
   "withdrawals": []
