@@ -2,66 +2,76 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-
-// middleware
 app.use(cors());
 app.use(express.json());
 
-// use Render port
 const PORT = process.env.PORT || 10000;
 
-// 🧠 SIMPLE IN-MEMORY WALLET (for now)
-let wallet = {
-  balance: 0
-};
+// 🔥 In-memory database (for now)
+let users = {};
 
-// ✅ TEST ROUTE
-app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
+// 👉 Create account
+app.post("/register", (req, res) => {
+  const { username } = req.body;
+
+  if (!username) {
+    return res.json({ error: "Username required" });
+  }
+
+  if (users[username]) {
+    return res.json({ error: "User already exists" });
+  }
+
+  users[username] = { balance: 0 };
+
+  res.json({ message: "User created", user: username });
 });
 
-// ✅ GET BALANCE
-app.get("/balance", (req, res) => {
-  res.json({ balance: wallet.balance });
+// 👉 Get balance
+app.get("/balance/:username", (req, res) => {
+  const user = users[req.params.username];
+
+  if (!user) {
+    return res.json({ error: "User not found" });
+  }
+
+  res.json({ balance: user.balance });
 });
 
-// ✅ DEPOSIT
+// 👉 Deposit
 app.post("/deposit", (req, res) => {
-  const { amount } = req.body;
+  const { username, amount } = req.body;
 
-  if (!amount || amount <= 0) {
-    return res.status(400).json({ error: "Invalid amount" });
+  const user = users[username];
+
+  if (!user) {
+    return res.json({ error: "User not found" });
   }
 
-  wallet.balance += amount;
+  user.balance += amount;
 
-  res.json({
-    message: "Deposit successful",
-    balance: wallet.balance
-  });
+  res.json({ message: "Deposit successful", balance: user.balance });
 });
 
-// ✅ WITHDRAW
+// 👉 Withdraw
 app.post("/withdraw", (req, res) => {
-  const { amount } = req.body;
+  const { username, amount } = req.body;
 
-  if (!amount || amount <= 0) {
-    return res.status(400).json({ error: "Invalid amount" });
+  const user = users[username];
+
+  if (!user) {
+    return res.json({ error: "User not found" });
   }
 
-  if (amount > wallet.balance) {
-    return res.status(400).json({ error: "Insufficient balance" });
+  if (user.balance < amount) {
+    return res.json({ error: "Insufficient balance" });
   }
 
-  wallet.balance -= amount;
+  user.balance -= amount;
 
-  res.json({
-    message: "Withdraw successful",
-    balance: wallet.balance
-  });
+  res.json({ message: "Withdraw successful", balance: user.balance });
 });
 
-// start server
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

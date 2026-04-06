@@ -1,28 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DWI Fintech</title>
+  <title>DWI Fintech Wallet</title>
 </head>
 <body>
 
-  <h1>DWI Fintech App</h1>
+  <h1>DWI Fintech Wallet 💰</h1>
 
-  <button onclick="testBackend()">Test Backend</button>
+  <h2>Balance: <span id="balance">0</span></h2>
 
-  <p id="result">Waiting...</p>
+  <input type="number" id="amount" placeholder="Enter amount" />
+
+  <br><br>
+
+  <button onclick="getBalance()">Check Balance</button>
+  <button onclick="deposit()">Deposit</button>
+  <button onclick="withdraw()">Withdraw</button>
+
+  <p id="result"></p>
 
   <script>
-    async function testBackend() {
-      try {
-        const res = await fetch("https://dwi-fintech-backend.onrender.com/");
-        const data = await res.text();
+    const BASE_URL = "https://dwi-fintech-backend.onrender.com";
 
-        document.getElementById("result").innerText = data;
-      } catch (err) {
-        document.getElementById("result").innerText = "Error connecting to backend";
-        console.error(err);
-      }
+    async function getBalance() {
+      const res = await fetch(`${BASE_URL}/balance`);
+      const data = await res.json();
+
+      document.getElementById("balance").innerText = data.balance;
     }
+
+    async function deposit() {
+      const amount = parseFloat(document.getElementById("amount").value);
+
+      const res = await fetch(`${BASE_URL}/deposit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ amount })
+      });
+
+      const data = await res.json();
+
+      document.getElementById("balance").innerText = data.balance;
+      document.getElementById("result").innerText = data.message || data.error;
+    }
+
+    async function withdraw() {
+      const amount = parseFloat(document.getElementById("amount").value);
+
+      const res = await fetch(`${BASE_URL}/withdraw`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ amount })
+      });
+
+      const data = await res.json();
+
+      document.getElementById("balance").innerText = data.balance || 0;
+      document.getElementById("result").innerText = data.message || data.error;
+    }
+
+    // auto load balance on page open
+    getBalance();
   </script>
 
 </body>
