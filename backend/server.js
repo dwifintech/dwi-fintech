@@ -7,8 +7,13 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-// 🔥 In-memory database (for now)
+// 🔥 In-memory database
 let users = {};
+
+// ✅ ROOT ROUTE (VERY IMPORTANT)
+app.get("/", (req, res) => {
+  res.send("DWI Backend API is running 🚀");
+});
 
 // 👉 Create account
 app.post("/register", (req, res) => {
