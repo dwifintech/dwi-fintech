@@ -1,263 +1,152 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>DWI Fintech</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DWI Fintech</title>
 
-<style>
-body{
-  margin:0;
-  background:#0b0e11;
-  color:white;
-  font-family:Arial;
-}
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            display: flex;
+        }
 
-.topbar{
-  background:#11161c;
-  padding:15px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
+        .sidebar {
+            width: 220px;
+            background: #111;
+            height: 100vh;
+            padding: 20px;
+        }
 
-.logo{
-  font-weight:bold;
-  color:#f0b90b;
-}
+        .sidebar h2 {
+            color: gold;
+        }
 
-.sidebar{
-  width:220px;
-  background:#11161c;
-  height:100vh;
-  float:left;
-}
+        .menu {
+            margin-top: 30px;
+        }
 
-.menu{
-  padding:15px;
-  cursor:pointer;
-  border-bottom:1px solid #1a222d;
-}
+        .menu div {
+            padding: 10px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
 
-.menu:hover{
-  background:#1a222d;
-}
+        .menu div:hover {
+            background: #222;
+        }
 
-.main{
-  margin-left:220px;
-  padding:20px;
-}
+        .content {
+            flex: 1;
+            padding: 40px;
+        }
 
-.card{
-  background:#11161c;
-  padding:20px;
-  border-radius:10px;
-  margin-bottom:20px;
-}
+        .card {
+            background: #111;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+        }
 
-h2{
-  margin-top:0;
-}
+        .balance {
+            font-size: 30px;
+            color: gold;
+        }
 
-.balance{
-  font-size:28px;
-  color:#f0b90b;
-}
-
-button{
-  background:#f0b90b;
-  border:none;
-  padding:10px;
-  margin-top:10px;
-  cursor:pointer;
-  border-radius:5px;
-}
-
-input{
-  padding:10px;
-  margin:5px 0;
-  background:#1a222d;
-  color:white;
-  border:none;
-  width:100%;
-  border-radius:5px;
-}
-
-.transaction{
-  border-bottom:1px solid #1a222d;
-  padding:10px 0;
-}
-</style>
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            background: gold;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="topbar">
-  <div class="logo">DWI FINTECH</div>
-  <div>
-    <a href="about.html" style="color:#f0b90b">About</a>
-    <button onclick="logout()">Logout</button>
-  </div>
-</div>
+    <div class="sidebar">
+        <h2>DWI FINTECH</h2>
 
-<div class="sidebar">
-  <div class="menu" onclick="show('dashboard')">Dashboard</div>
-  <div class="menu" onclick="show('wallet')">Wallet</div>
-  <div class="menu" onclick="show('invest')">Invest</div>
-  <div class="menu" onclick="show('history')">Transactions</div>
-  <div class="menu" onclick="show('charts')">Analytics</div>
-</div>
+        <div class="menu">
+            <div onclick="showSection('dashboard')">Dashboard</div>
+            <div onclick="showSection('wallet')">Wallet</div>
+            <div onclick="showSection('invest')">Invest</div>
+            <div onclick="showSection('transactions')">Transactions</div>
+            <div onclick="showSection('analytics')">Analytics</div>
+        </div>
+    </div>
 
-<div class="main">
+    <div class="content">
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="card">
-<h2>Dashboard</h2>
-<p>Available Balance</p>
-<div class="balance">$<span id="available">0</span></div>
+        <div id="dashboard">
+            <h2>Dashboard</h2>
+            <div class="card">
+                <p>Available Balance</p>
+                <div class="balance" id="balance">$0</div>
+                <button onclick="refreshBalance()">Refresh</button>
+            </div>
+        </div>
 
-<button onclick="loadDashboard()">Refresh</button>
-</div>
+        <div id="wallet" style="display:none;">
+            <h2>Wallet</h2>
+            <button onclick="deposit()">Deposit</button>
+            <button onclick="withdraw()">Withdraw</button>
+        </div>
 
-<!-- WALLET -->
-<div id="wallet" class="card" style="display:none">
-<h2>Wallet</h2>
+        <div id="invest" style="display:none;">
+            <h2>Invest</h2>
+            <p>Coming soon...</p>
+        </div>
 
-<h3>Deposit</h3>
-<input id="depAmount" placeholder="Enter amount">
-<button onclick="deposit()">Request Deposit</button>
+        <div id="transactions" style="display:none;">
+            <h2>Transactions</h2>
+            <p>No transactions yet.</p>
+        </div>
 
-<h3>Withdraw</h3>
-<input id="withAmount" placeholder="Enter amount">
-<button onclick="withdraw()">Request Withdrawal</button>
-</div>
+        <div id="analytics" style="display:none;">
+            <h2>Analytics</h2>
+            <p>Analytics coming soon...</p>
+        </div>
 
-<!-- INVEST -->
-<div id="invest" class="card" style="display:none">
-<h2>Invest</h2>
-
-<button onclick="loadPlans()">Load Plans</button>
-<div id="plans"></div>
-
-<input id="amount" placeholder="Amount">
-<input id="plan" placeholder="Plan Name">
-<button onclick="invest()">Invest</button>
-</div>
-
-<!-- TRANSACTIONS -->
-<div id="history" class="card" style="display:none">
-<h2>Transaction History</h2>
-<button onclick="loadHistory()">Refresh</button>
-<div id="historyList"></div>
-</div>
-
-<!-- CHARTS -->
-<div id="charts" class="card" style="display:none">
-<h2>Analytics</h2>
-<canvas id="chart"></canvas>
-</div>
-
-</div>
+    </div>
 
 <script>
+    let balance = 0;
 
-const API="https://dwi-fintech.onrender.com";
-let email = localStorage.getItem("email");
+    function showSection(section) {
+        const sections = ["dashboard", "wallet", "invest", "transactions", "analytics"];
+        sections.forEach(id => {
+            document.getElementById(id).style.display = "none";
+        });
 
-if(!email){
-  window.location="index.html";
-}
+        document.getElementById(section).style.display = "block";
+    }
 
-function logout(){
-  localStorage.removeItem("email");
-  window.location="index.html";
-}
+    function refreshBalance() {
+        balance += Math.floor(Math.random() * 10);
+        document.getElementById("balance").innerText = "$" + balance;
+        console.log("Balance refreshed:", balance);
+    }
 
-function show(section){
-  ["dashboard","wallet","invest","history","charts"].forEach(id=>{
-    document.getElementById(id).style.display="none";
-  });
-  document.getElementById(section).style.display="block";
-}
+    function deposit() {
+        balance += 50;
+        document.getElementById("balance").innerText = "$" + balance;
+        alert("Deposit successful");
+    }
 
-// DASHBOARD
-async function loadDashboard(){
-  let res = await fetch(API+"/dashboard",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email})
-  });
-
-  let data = await res.json();
-  available.innerText = data.available;
-}
-
-// DEPOSIT
-async function deposit(){
-  let res = await fetch(API+"/deposit",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email,
-      amount:depAmount.value
-    })
-  });
-
-  alert(await res.text());
-}
-
-// WITHDRAW
-async function withdraw(){
-  let res = await fetch(API+"/withdraw",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email,
-      amount:withAmount.value
-    })
-  });
-
-  alert(await res.text());
-}
-
-// INVEST
-async function loadPlans(){
-  let res = await fetch(API+"/plans");
-  let data = await res.json();
-
-  plans.innerHTML = data.map(p=>`<div class="transaction">${p.name}</div>`).join("");
-}
-
-async function invest(){
-  let res = await fetch(API+"/invest",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      email,
-      amount:amount.value,
-      planName:plan.value
-    })
-  });
-
-  alert(await res.text());
-}
-
-// HISTORY (basic combined view)
-async function loadHistory(){
-  let res = await fetch(API+"/my-investments",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email})
-  });
-
-  let data = await res.json();
-
-  historyList.innerHTML = data.map(i=>`
-    <div class="transaction">
-      ${i.type} - $${i.amount} (Profit: $${i.profit})
-    </div>
-  `).join("");
-}
-
+    function withdraw() {
+        if (balance >= 20) {
+            balance -= 20;
+            document.getElementById("balance").innerText = "$" + balance;
+            alert("Withdrawal successful");
+        } else {
+            alert("Insufficient balance");
+        }
+    }
 </script>
 
 </body>
