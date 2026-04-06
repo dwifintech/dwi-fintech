@@ -1,178 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>DWI Fintech</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body{margin:0;font-family:Arial;background:#0b0e11;color:white}
-.topbar{display:flex;justify-content:space-between;padding:15px;background:#11161c}
-.logo{color:#f0b90b;font-weight:bold}
-.sidebar{width:200px;position:fixed;top:60px;bottom:0;background:#11161c}
-.menu{padding:15px;cursor:pointer}
-.menu:hover{background:#1a222d}
-.main{margin-left:200px;padding:20px}
-@media(max-width:768px){.sidebar{width:100%;position:relative}.main{margin-left:0}}
-.card{background:#11161c;padding:20px;margin-bottom:20px;border-radius:10px}
-.balance{font-size:26px;color:#f0b90b}
-button{background:#f0b90b;border:none;padding:10px;margin-top:10px;border-radius:5px}
-.plan{border:1px solid #1a222d;padding:15px;margin:10px 0;border-radius:10px}
-</style>
+  <title>DWI Fintech</title>
+  <style>
+    body {
+      background: #0b0b0b;
+      color: white;
+      font-family: Arial;
+      display: flex;
+    }
+    .sidebar {
+      width: 200px;
+      padding: 20px;
+    }
+    .main {
+      padding: 20px;
+    }
+    input {
+      padding: 10px;
+      margin: 10px 0;
+      width: 200px;
+    }
+    button {
+      background: gold;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="topbar">
-<div class="logo">DWI FINTECH</div>
-<button onclick="logout()">Logout</button>
-</div>
-
 <div class="sidebar">
-<div class="menu" onclick="show('dashboard')">Dashboard</div>
-<div class="menu" onclick="show('internet')">Internet</div>
-<div class="menu" onclick="show('services')">Digital Services</div>
-<div class="menu" onclick="show('wallet')">Wallet</div>
-<div class="menu" onclick="show('history')">Transactions</div>
+  <h2>DWI FINTECH</h2>
+  <p>Dashboard</p>
+  <p>Wallet</p>
 </div>
 
 <div class="main">
+  <h2>Wallet</h2>
 
-<div id="dashboard" class="card">
-<h2>Dashboard</h2>
-<div class="balance">UGX <span id="balance">0</span></div>
-<button onclick="loadDashboard()">Refresh</button>
-</div>
+  <h3>Deposit</h3>
+  <input id="depositAmount" placeholder="Amount">
+  <button onclick="deposit()">Deposit</button>
 
-<div id="internet" class="card" style="display:none">
-<h2>Hotspot Plans</h2>
-<div id="hotspot"></div>
+  <h3>Withdraw</h3>
+  <input id="withdrawAmount" placeholder="Amount">
+  <button onclick="withdraw()">Withdraw</button>
 
-<h2>PPPoE Plans</h2>
-<div id="pppoe"></div>
-</div>
-
-<div id="services" class="card" style="display:none">
-<h2>Digital Financial Services</h2>
-<div id="servicesList"></div>
-</div>
-
-<div id="wallet" class="card" style="display:none">
-<input id="depAmount" placeholder="Deposit">
-<button onclick="deposit()">Deposit</button>
-
-<input id="withAmount" placeholder="Withdraw">
-<button onclick="withdraw()">Withdraw</button>
-</div>
-
-<div id="history" class="card" style="display:none">
-<button onclick="loadHistory()">Refresh</button>
-<div id="historyList"></div>
-</div>
-
+  <h3>Balance: $<span id="balance">0</span></h3>
 </div>
 
 <script>
+const API = "http://localhost:3000";
 
-const API="https://dwi-fintech.onrender.com";
-let email=localStorage.getItem("email");
-
-function show(s){
-["dashboard","internet","services","wallet","history"].forEach(x=>{
-document.getElementById(x).style.display="none";
-});
-document.getElementById(s).style.display="block";
+async function getBalance() {
+  try {
+    const res = await fetch(API + "/balance");
+    const data = await res.json();
+    document.getElementById("balance").innerText = data.balance;
+  } catch (err) {
+    alert("Backend not reachable");
+  }
 }
 
-// DASHBOARD
-async function loadDashboard(){
-let r=await fetch(API+"/dashboard",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
-let d=await r.json();
-balance.innerText=d.balance;
+async function deposit() {
+  const amount = document.getElementById("depositAmount").value;
+
+  await fetch(API + "/deposit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: Number(amount) })
+  });
+
+  alert("Deposit successful");
+  getBalance(); // 🔥 update immediately
 }
 
-// LOAD INTERNET
-async function loadPlans(){
-let r=await fetch(API+"/plans");
-let d=await r.json();
+async function withdraw() {
+  const amount = document.getElementById("withdrawAmount").value;
 
-hotspot.innerHTML=d.hotspot.map(p=>`
-<div class="plan">
-<b>${p.name}</b><br>
-UGX ${p.price}<br>
-<button onclick="buyHotspot('${p.name}')">Buy</button>
-</div>`).join("");
+  await fetch(API + "/withdraw", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: Number(amount) })
+  });
 
-pppoe.innerHTML=d.pppoe.map(p=>`
-<div class="plan">
-<b>${p.name}</b><br>
-UGX ${p.price}<br>
-<button onclick="buyPPPOE('${p.name}')">Buy</button>
-</div>`).join("");
+  alert("Withdraw successful");
+  getBalance(); // 🔥 update immediately
 }
 
-// LOAD SERVICES
-async function loadServices(){
-let r=await fetch(API+"/services");
-let d=await r.json();
-
-servicesList.innerHTML=d.map(s=>`
-<div class="plan">
-<b>${s.name}</b><br>
-${s.description}
-</div>`).join("");
-}
-
-// BUY
-async function buyHotspot(name){
-let r=await fetch(API+"/buy-hotspot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,plan:name})});
-alert(await r.text());
-loadDashboard();
-}
-
-async function buyPPPOE(name){
-let r=await fetch(API+"/buy-pppoe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,plan:name})});
-alert(await r.text());
-loadDashboard();
-}
-
-// WALLET
-async function deposit(){
-await fetch(API+"/deposit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,amount:depAmount.value})});
-alert("Deposit requested");
-}
-
-async function withdraw(){
-await fetch(API+"/withdraw",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,amount:withAmount.value})});
-alert("Withdraw requested");
-}
-
-// HISTORY
-async function loadHistory(){
-let r=await fetch(API+"/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
-let d=await r.json();
-
-let html="<h3>Internet</h3>";
-d.internet.forEach(i=>{
-html+=`<div class="plan">${i.name}</div>`;
-});
-
-html+="<h3>Services</h3>";
-d.services.forEach(s=>{
-html+=`<div class="plan">${s.name}</div>`;
-});
-
-historyList.innerHTML=html;
-}
-
-function logout(){
-localStorage.removeItem("email");
-window.location="index.html";
-}
-
-loadDashboard();
-loadPlans();
-loadServices();
-
+// 🔥 load balance when page opens
+getBalance();
 </script>
 
 </body>
