@@ -1,45 +1,45 @@
 const express = require("express");
-const cors = require("cors");
 const fs = require("fs");
+const path = require("path");
+const cors = require("cors");
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-const PORT = process.env.PORT || 10000;
+// ✅ FIXED DB PATH (VERY IMPORTANT)
+const DB_FILE = path.join(__dirname, "db.json");
 
-const DB_FILE = "./db.json";
-
-// 👉 Load DB
+// Load DB
 function loadDB() {
-  try {
-    return JSON.parse(fs.readFileSync(DB_FILE));
-  } catch {
+  if (!fs.existsSync(DB_FILE)) {
     return { users: {} };
   }
+  const data = fs.readFileSync(DB_FILE);
+  return JSON.parse(data);
 }
 
-// 👉 Save DB
+// Save DB
 function saveDB(data) {
   fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
-// ✅ ROOT
+// Root route
 app.get("/", (req, res) => {
-  res.send("DWI Backend API is running 🚀");
+  res.send("Backend is running 🚀");
 });
 
-// 👉 Register
+// Register user
 app.post("/register", (req, res) => {
   const { username } = req.body;
-  let db = loadDB();
+  const db = loadDB();
 
   if (!username) {
-    return res.json({ error: "Username required" });
+    return res.status(400).json({ error: "Username required" });
   }
 
   if (db.users[username]) {
-    return res.json({ error: "User already exists" });
+    return res.status(400).json({ error: "User already exists" });
   }
 
   db.users[username] = { balance: 0 };
@@ -48,88 +48,83 @@ app.post("/register", (req, res) => {
   res.json({ message: "User created", user: username });
 });
 
-// 👉 Balance
-app.get("/balance/:username", (req, res) => {
-  let db = loadDB();
-  const user = db.users[req.params.username];
+// Check balance
+app.post("/balance", (req, res) => {
+  const { username } = req.body;
+  const db = loadDB();
 
-  if (!user) {
-    return res.json({ error: "User not found" });
+  if (!db.users[username]) {
+    return res.status(404).json({ error: "User not found" });
   }
 
-  res.json({ balance: user.balance });
+  res.json({ balance: db.users[username].balance });
 });
 
-// 👉 Deposit
+// Deposit
 app.post("/deposit", (req, res) => {
   const { username, amount } = req.body;
-  let db = loadDB();
+  const db = loadDB();
 
-  const user = db.users[username];
-
-  if (!user) {
-    return res.json({ error: "User not found" });
+  if (!db.users[username]) {
+    return res.status(404).json({ error: "User not found" });
   }
 
-  user.balance += amount;
+  db.users[username].balance += Number(amount);
   saveDB(db);
 
-  res.json({ message: "Deposit successful", balance: user.balance });
+  res.json({ balance: db.users[username].balance });
 });
 
-// 👉 Withdraw
+// Withdraw
 app.post("/withdraw", (req, res) => {
   const { username, amount } = req.body;
-  let db = loadDB();
+  const db = loadDB();
 
-  const user = db.users[username];
-
-  if (!user) {
-    return res.json({ error: "User not found" });
+  if (!db.users[username]) {
+    return res.status(404).json({ error: "User not found" });
   }
 
-  if (user.balance < amount) {
-    return res.json({ error: "Insufficient balance" });
+  if (db.users[username].balance < amount) {
+    return res.status(400).json({ error: "Insufficient funds" });
   }
 
-  user.balance -= amount;
+  db.users[username].balance -= Number(amount);
   saveDB(db);
 
-  res.json({ message: "Withdraw successful", balance: user.balance });
+  res.json({
+    message: "Withdraw successful",
+    balance: db.users[username].balance,
+  });
 });
 
-// 👉 Transfer
+// Transfer
 app.post("/transfer", (req, res) => {
   const { from, to, amount } = req.body;
-  let db = loadDB();
+  const db = loadDB();
 
-  const sender = db.users[from];
-  const receiver = db.users[to];
-
-  if (!sender) {
-    return res.json({ error: "Sender not found" });
+  if (!db.users[from] || !db.users[to]) {
+    return res.status(404).json({ error: "User not found" });
   }
 
-  if (!receiver) {
-    return res.json({ error: "Receiver not found" });
+  if (db.users[from].balance < amount) {
+    return res.status(400).json({ error: "Insufficient funds" });
   }
 
-  if (sender.balance < amount) {
-    return res.json({ error: "Insufficient balance" });
-  }
-
-  sender.balance -= amount;
-  receiver.balance += amount;
+  db.users[from].balance -= Number(amount);
+  db.users[to].balance += Number(amount);
 
   saveDB(db);
 
   res.json({
     message: "Transfer successful",
-    fromBalance: sender.balance,
-    toBalance: receiver.balance
+    fromBalance: db.users[from].balance,
+    toBalance: db.users[to].balance,
   });
 });
 
+// ✅ PORT FIX (RENDER SAFE)
+const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
