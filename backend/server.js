@@ -3,11 +3,15 @@ const cors = require("cors");
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// In-memory balance (temporary storage)
+// Test route (VERY IMPORTANT for Render detection)
+app.get("/", (req, res) => {
+  res.send("API is running");
+});
+
+// Data
 let balance = 200;
 
 // Routes
@@ -41,9 +45,9 @@ app.post("/withdraw", (req, res) => {
   res.json({ message: "Withdraw successful", balance });
 });
 
-// ✅ IMPORTANT FIX FOR RENDER
-const PORT = process.env.PORT || 3000;
+// 🔥 CRITICAL FIX
+const PORT = process.env.PORT;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
 });
