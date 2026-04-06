@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Test route (VERY IMPORTANT for Render detection)
+// Root route (important for Render)
 app.get("/", (req, res) => {
   res.send("API is running");
 });
@@ -45,9 +45,9 @@ app.post("/withdraw", (req, res) => {
   res.json({ message: "Withdraw successful", balance });
 });
 
-// 🔥 CRITICAL FIX
-const PORT = process.env.PORT;
+// 🔥 FINAL FIX (THIS IS THE ONE THAT WORKS)
+const PORT = process.env.PORT || 10000;
 
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
