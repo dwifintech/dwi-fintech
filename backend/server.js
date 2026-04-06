@@ -10,12 +10,12 @@ const PORT = process.env.PORT || 10000;
 // 🔥 In-memory database
 let users = {};
 
-// ✅ ROOT ROUTE (VERY IMPORTANT)
+// ✅ ROOT
 app.get("/", (req, res) => {
   res.send("DWI Backend API is running 🚀");
 });
 
-// 👉 Create account
+// 👉 Register
 app.post("/register", (req, res) => {
   const { username } = req.body;
 
@@ -32,7 +32,7 @@ app.post("/register", (req, res) => {
   res.json({ message: "User created", user: username });
 });
 
-// 👉 Get balance
+// 👉 Balance
 app.get("/balance/:username", (req, res) => {
   const user = users[req.params.username];
 
@@ -75,6 +75,36 @@ app.post("/withdraw", (req, res) => {
   user.balance -= amount;
 
   res.json({ message: "Withdraw successful", balance: user.balance });
+});
+
+// 🔥 NEW: TRANSFER MONEY
+app.post("/transfer", (req, res) => {
+  const { from, to, amount } = req.body;
+
+  const sender = users[from];
+  const receiver = users[to];
+
+  if (!sender) {
+    return res.json({ error: "Sender not found" });
+  }
+
+  if (!receiver) {
+    return res.json({ error: "Receiver not found" });
+  }
+
+  if (sender.balance < amount) {
+    return res.json({ error: "Insufficient balance" });
+  }
+
+  // Transfer
+  sender.balance -= amount;
+  receiver.balance += amount;
+
+  res.json({
+    message: "Transfer successful",
+    fromBalance: sender.balance,
+    toBalance: receiver.balance
+  });
 });
 
 app.listen(PORT, () => {

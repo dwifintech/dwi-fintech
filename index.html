@@ -1,70 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DWI Fintech Wallet</title>
+  <title>DWI Fintech App</title>
 </head>
 <body>
 
-  <h1>DWI Fintech Wallet 💰</h1>
+  <h1>DWI Fintech App</h1>
 
-  <h2>Balance: <span id="balance">0</span></h2>
-
-  <input type="number" id="amount" placeholder="Enter amount" />
+  <!-- USER -->
+  <input id="username" placeholder="Enter username" />
+  <button onclick="register()">Register</button>
 
   <br><br>
 
+  <!-- ACTIONS -->
   <button onclick="getBalance()">Check Balance</button>
-  <button onclick="deposit()">Deposit</button>
-  <button onclick="withdraw()">Withdraw</button>
+  <button onclick="deposit()">Deposit 100</button>
+  <button onclick="withdraw()">Withdraw 50</button>
 
-  <p id="result"></p>
+  <p id="output"></p>
 
   <script>
     const BASE_URL = "https://dwi-fintech-backend.onrender.com";
 
+    function getUsername() {
+      return document.getElementById("username").value;
+    }
+
+    async function register() {
+      const username = getUsername();
+
+      const res = await fetch(BASE_URL + "/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      });
+
+      const data = await res.json();
+      document.getElementById("output").innerText = JSON.stringify(data);
+    }
+
     async function getBalance() {
-      const res = await fetch(`${BASE_URL}/balance`);
+      const username = getUsername();
+
+      const res = await fetch(BASE_URL + "/balance/" + username);
       const data = await res.json();
 
-      document.getElementById("balance").innerText = data.balance;
+      document.getElementById("output").innerText = JSON.stringify(data);
     }
 
     async function deposit() {
-      const amount = parseFloat(document.getElementById("amount").value);
+      const username = getUsername();
 
-      const res = await fetch(`${BASE_URL}/deposit`, {
+      const res = await fetch(BASE_URL + "/deposit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ amount })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, amount: 100 })
       });
 
       const data = await res.json();
-
-      document.getElementById("balance").innerText = data.balance;
-      document.getElementById("result").innerText = data.message || data.error;
+      document.getElementById("output").innerText = JSON.stringify(data);
     }
 
     async function withdraw() {
-      const amount = parseFloat(document.getElementById("amount").value);
+      const username = getUsername();
 
-      const res = await fetch(`${BASE_URL}/withdraw`, {
+      const res = await fetch(BASE_URL + "/withdraw", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ amount })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, amount: 50 })
       });
 
       const data = await res.json();
-
-      document.getElementById("balance").innerText = data.balance || 0;
-      document.getElementById("result").innerText = data.message || data.error;
+      document.getElementById("output").innerText = JSON.stringify(data);
     }
-
-    // auto load balance on page open
-    getBalance();
   </script>
 
 </body>
