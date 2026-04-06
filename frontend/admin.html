@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>DWI Fintech Admin</title>
+
+<style>
+body{
+  background:#0b0e11;
+  color:white;
+  font-family:Arial;
+  padding:20px;
+}
+
+h2{color:#f0b90b}
+
+.card{
+  background:#11161c;
+  padding:15px;
+  margin-bottom:20px;
+  border-radius:8px;
+}
+
+button{
+  background:#f0b90b;
+  border:none;
+  padding:6px 10px;
+  margin-left:10px;
+  cursor:pointer;
+}
+
+input{
+  padding:6px;
+  margin:5px;
+  background:#1a222d;
+  border:none;
+  color:white;
+}
+</style>
+</head>
+
+<body>
+
+<h2>DWI FINTECH ADMIN PANEL</h2>
+
+<div class="card">
+<h3>Deposits</h3>
+<div id="deposits"></div>
+</div>
+
+<div class="card">
+<h3>Withdrawals</h3>
+<div id="withdrawals"></div>
+</div>
+
+<script>
+
+// 🔐 ADMIN PASSWORD PROTECTION
+let pass = prompt("Enter admin password");
+
+if(pass !== "DWI123"){
+  alert("Access denied");
+  window.location="index.html";
+}
+
+// 🔗 API
+const API = "https://dwi-fintech.onrender.com";
+
+// 📥 LOAD DEPOSITS
+async function loadDeposits(){
+  let res = await fetch(API + "/admin/deposits");
+  let data = await res.json();
+
+  if(data.length === 0){
+    deposits.innerHTML = "No deposit requests";
+    return;
+  }
+
+  deposits.innerHTML = data.map(d => `
+    <p>
+      <b>${d.email}</b> → $${d.amount} 
+      [${d.status}]
+      ${d.status === "pending" ? 
+        `<button onclick="approveDeposit(${d.id})">Approve</button>` 
+        : ""}
+    </p>
+  `).join("");
+}
+
+// ✅ APPROVE DEPOSIT
+async function approveDeposit(id){
+  let res = await fetch(API + "/admin/approve-deposit", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id})
+  });
+
+  alert(await res.text());
+  loadDeposits();
+}
+
+// 📤 LOAD WITHDRAWALS
+async function loadWithdrawals(){
+  let res = await fetch(API + "/admin/withdrawals");
+  let data = await res.json();
+
+  if(data.length === 0){
+    withdrawals.innerHTML = "No withdrawal requests";
+    return;
+  }
+
+  withdrawals.innerHTML = data.map(w => `
+    <p>
+      <b>${w.email}</b> → $${w.amount} 
+      [${w.status}]
+      ${w.status === "pending" ? 
+        `<button onclick="approveWithdraw(${w.id})">Approve</button>` 
+        : ""}
+    </p>
+  `).join("");
+}
+
+// ✅ APPROVE WITHDRAWAL
+async function approveWithdraw(id){
+  let res = await fetch(API + "/admin/approve-withdraw", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id})
+  });
+
+  alert(await res.text());
+  loadWithdrawals();
+}
+
+// 🔄 AUTO LOAD
+loadDeposits();
+loadWithdrawals();
+
+</script>
+
+</body>
+</html>
