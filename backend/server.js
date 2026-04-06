@@ -1,13 +1,18 @@
 const express = require("express");
+const cors = require("cors");
+
 const app = express();
 
-// use Render port (VERY IMPORTANT)
+// enable CORS (VERY IMPORTANT FIX)
+app.use(cors());
+
+// port
 const PORT = process.env.PORT || 10000;
 
 // middleware
 app.use(express.json());
 
-// test route
+// route
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });

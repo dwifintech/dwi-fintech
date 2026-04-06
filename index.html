@@ -1,153 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DWI Fintech</title>
-
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #0a0a0a;
-            color: white;
-            display: flex;
-        }
-
-        .sidebar {
-            width: 220px;
-            background: #111;
-            height: 100vh;
-            padding: 20px;
-        }
-
-        .sidebar h2 {
-            color: gold;
-        }
-
-        .menu {
-            margin-top: 30px;
-        }
-
-        .menu div {
-            padding: 10px;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-
-        .menu div:hover {
-            background: #222;
-        }
-
-        .content {
-            flex: 1;
-            padding: 40px;
-        }
-
-        .card {
-            background: #111;
-            padding: 20px;
-            border-radius: 10px;
-            width: 300px;
-        }
-
-        .balance {
-            font-size: 30px;
-            color: gold;
-        }
-
-        button {
-            margin-top: 10px;
-            padding: 10px;
-            background: gold;
-            border: none;
-            cursor: pointer;
-        }
-    </style>
+  <title>DWI Fintech</title>
 </head>
-
 <body>
 
-    <div class="sidebar">
-        <h2>DWI FINTECH</h2>
+  <h1>DWI Fintech App</h1>
 
-        <div class="menu">
-            <div onclick="showSection('dashboard')">Dashboard</div>
-            <div onclick="showSection('wallet')">Wallet</div>
-            <div onclick="showSection('invest')">Invest</div>
-            <div onclick="showSection('transactions')">Transactions</div>
-            <div onclick="showSection('analytics')">Analytics</div>
-        </div>
-    </div>
+  <button onclick="testBackend()">Test Backend</button>
 
-    <div class="content">
+  <p id="result">Waiting...</p>
 
-        <div id="dashboard">
-            <h2>Dashboard</h2>
-            <div class="card">
-                <p>Available Balance</p>
-                <div class="balance" id="balance">$0</div>
-                <button onclick="refreshBalance()">Refresh</button>
-            </div>
-        </div>
+  <script>
+    async function testBackend() {
+      try {
+        const res = await fetch("https://dwi-fintech-backend.onrender.com/");
+        const data = await res.text();
 
-        <div id="wallet" style="display:none;">
-            <h2>Wallet</h2>
-            <button onclick="deposit()">Deposit</button>
-            <button onclick="withdraw()">Withdraw</button>
-        </div>
-
-        <div id="invest" style="display:none;">
-            <h2>Invest</h2>
-            <p>Coming soon...</p>
-        </div>
-
-        <div id="transactions" style="display:none;">
-            <h2>Transactions</h2>
-            <p>No transactions yet.</p>
-        </div>
-
-        <div id="analytics" style="display:none;">
-            <h2>Analytics</h2>
-            <p>Analytics coming soon...</p>
-        </div>
-
-    </div>
-
-<script>
-    let balance = 0;
-
-    function showSection(section) {
-        const sections = ["dashboard", "wallet", "invest", "transactions", "analytics"];
-        sections.forEach(id => {
-            document.getElementById(id).style.display = "none";
-        });
-
-        document.getElementById(section).style.display = "block";
+        document.getElementById("result").innerText = data;
+      } catch (err) {
+        document.getElementById("result").innerText = "Error connecting to backend";
+        console.error(err);
+      }
     }
-
-    function refreshBalance() {
-        balance += Math.floor(Math.random() * 10);
-        document.getElementById("balance").innerText = "$" + balance;
-        console.log("Balance refreshed:", balance);
-    }
-
-    function deposit() {
-        balance += 50;
-        document.getElementById("balance").innerText = "$" + balance;
-        alert("Deposit successful");
-    }
-
-    function withdraw() {
-        if (balance >= 20) {
-            balance -= 20;
-            document.getElementById("balance").innerText = "$" + balance;
-            alert("Withdrawal successful");
-        } else {
-            alert("Insufficient balance");
-        }
-    }
-</script>
+  </script>
 
 </body>
 </html>
