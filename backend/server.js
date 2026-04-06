@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
 
 const app = express();
 app.use(cors());
@@ -7,8 +8,21 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 
-// 🔥 In-memory database
-let users = {};
+const DB_FILE = "./db.json";
+
+// 👉 Load DB
+function loadDB() {
+  try {
+    return JSON.parse(fs.readFileSync(DB_FILE));
+  } catch {
+    return { users: {} };
+  }
+}
+
+// 👉 Save DB
+function saveDB(data) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+}
 
 // ✅ ROOT
 app.get("/", (req, res) => {
@@ -18,23 +32,26 @@ app.get("/", (req, res) => {
 // 👉 Register
 app.post("/register", (req, res) => {
   const { username } = req.body;
+  let db = loadDB();
 
   if (!username) {
     return res.json({ error: "Username required" });
   }
 
-  if (users[username]) {
+  if (db.users[username]) {
     return res.json({ error: "User already exists" });
   }
 
-  users[username] = { balance: 0 };
+  db.users[username] = { balance: 0 };
+  saveDB(db);
 
   res.json({ message: "User created", user: username });
 });
 
 // 👉 Balance
 app.get("/balance/:username", (req, res) => {
-  const user = users[req.params.username];
+  let db = loadDB();
+  const user = db.users[req.params.username];
 
   if (!user) {
     return res.json({ error: "User not found" });
@@ -46,14 +63,16 @@ app.get("/balance/:username", (req, res) => {
 // 👉 Deposit
 app.post("/deposit", (req, res) => {
   const { username, amount } = req.body;
+  let db = loadDB();
 
-  const user = users[username];
+  const user = db.users[username];
 
   if (!user) {
     return res.json({ error: "User not found" });
   }
 
   user.balance += amount;
+  saveDB(db);
 
   res.json({ message: "Deposit successful", balance: user.balance });
 });
@@ -61,8 +80,9 @@ app.post("/deposit", (req, res) => {
 // 👉 Withdraw
 app.post("/withdraw", (req, res) => {
   const { username, amount } = req.body;
+  let db = loadDB();
 
-  const user = users[username];
+  const user = db.users[username];
 
   if (!user) {
     return res.json({ error: "User not found" });
@@ -73,16 +93,18 @@ app.post("/withdraw", (req, res) => {
   }
 
   user.balance -= amount;
+  saveDB(db);
 
   res.json({ message: "Withdraw successful", balance: user.balance });
 });
 
-// 🔥 NEW: TRANSFER MONEY
+// 👉 Transfer
 app.post("/transfer", (req, res) => {
   const { from, to, amount } = req.body;
+  let db = loadDB();
 
-  const sender = users[from];
-  const receiver = users[to];
+  const sender = db.users[from];
+  const receiver = db.users[to];
 
   if (!sender) {
     return res.json({ error: "Sender not found" });
@@ -96,9 +118,10 @@ app.post("/transfer", (req, res) => {
     return res.json({ error: "Insufficient balance" });
   }
 
-  // Transfer
   sender.balance -= amount;
   receiver.balance += amount;
+
+  saveDB(db);
 
   res.json({
     message: "Transfer successful",

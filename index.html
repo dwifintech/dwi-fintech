@@ -8,8 +8,14 @@
   <h1>DWI Fintech App</h1>
 
   <!-- USER -->
-  <input id="username" placeholder="Enter username" />
+  <input id="username" placeholder="Your username" />
   <button onclick="register()">Register</button>
+
+  <br><br>
+
+  <!-- TRANSFER -->
+  <input id="receiver" placeholder="Send to (username)" />
+  <button onclick="transfer()">Send 50</button>
 
   <br><br>
 
@@ -25,6 +31,10 @@
 
     function getUsername() {
       return document.getElementById("username").value;
+    }
+
+    function getReceiver() {
+      return document.getElementById("receiver").value;
     }
 
     async function register() {
@@ -69,6 +79,20 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, amount: 50 })
+      });
+
+      const data = await res.json();
+      document.getElementById("output").innerText = JSON.stringify(data);
+    }
+
+    async function transfer() {
+      const from = getUsername();
+      const to = getReceiver();
+
+      const res = await fetch(BASE_URL + "/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to, amount: 50 })
       });
 
       const data = await res.json();
