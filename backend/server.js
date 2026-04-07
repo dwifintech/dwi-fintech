@@ -41,12 +41,10 @@ const authMiddleware = (req, res, next) => {
 };
 
 // ==============================
-// ROUTES
+// ROOT
 // ==============================
-
-// ✅ ROOT TEST
 app.get("/", (req, res) => {
-  res.json({ status: "OK", message: "DWI Fintech Backend Running 🚀" });
+  res.json({ status: "OK", message: "Backend running 🚀" });
 });
 
 // ==============================
@@ -55,6 +53,11 @@ app.get("/", (req, res) => {
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    // ✅ FIX: Validate inputs BEFORE hashing
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -93,6 +96,10 @@ app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
@@ -119,20 +126,6 @@ app.post("/api/login", async (req, res) => {
         balance: user.balance
       }
     });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// ==============================
-// PROFILE (PROTECTED)
-// ==============================
-app.get("/api/profile", authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-
-    res.json(user);
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -196,7 +189,7 @@ app.post("/api/withdraw", authMiddleware, async (req, res) => {
 });
 
 // ==============================
-// SERVER START
+// SERVER
 // ==============================
 const PORT = process.env.PORT || 10000;
 
