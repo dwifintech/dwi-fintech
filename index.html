@@ -5,100 +5,105 @@
 </head>
 <body>
 
-  <h1>DWI Fintech App</h1>
+<h1>DWI Fintech App</h1>
 
-  <!-- USER -->
-  <input id="username" placeholder="Your username" />
-  <button onclick="register()">Register</button>
+<!-- Register -->
+<input id="username" placeholder="Enter username">
+<button onclick="register()">Register</button>
 
-  <br><br>
+<br><br>
 
-  <!-- TRANSFER -->
-  <input id="receiver" placeholder="Send to (username)" />
-  <button onclick="transfer()">Send 50</button>
+<!-- Transfer -->
+<input id="toUser" placeholder="Send to (username)">
+<button onclick="sendMoney()">Send 50</button>
 
-  <br><br>
+<br><br>
 
-  <!-- ACTIONS -->
-  <button onclick="getBalance()">Check Balance</button>
-  <button onclick="deposit()">Deposit 100</button>
-  <button onclick="withdraw()">Withdraw 50</button>
+<!-- Actions -->
+<button onclick="checkBalance()">Check Balance</button>
+<button onclick="deposit()">Deposit 100</button>
+<button onclick="withdraw()">Withdraw 50</button>
 
-  <p id="output"></p>
+<p id="output"></p>
 
-  <script>
-    const BASE_URL = "https://dwi-fintech-backend.onrender.com";
+<script>
+const BASE_URL = "https://dwi-fintech-backend.onrender.com";
 
-    function getUsername() {
-      return document.getElementById("username").value;
-    }
+function getUsername() {
+  return document.getElementById("username").value;
+}
 
-    function getReceiver() {
-      return document.getElementById("receiver").value;
-    }
+// Register
+async function register() {
+  const username = getUsername();
 
-    async function register() {
-      const username = getUsername();
+  const res = await fetch(BASE_URL + "/register", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ username }) // ✅ CORRECT
+  });
 
-      const res = await fetch(BASE_URL + "/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username })
-      });
+  const data = await res.json();
+  document.getElementById("output").innerText = JSON.stringify(data);
+}
 
-      const data = await res.json();
-      document.getElementById("output").innerText = JSON.stringify(data);
-    }
+// Check Balance
+async function checkBalance() {
+  const username = getUsername();
 
-    async function getBalance() {
-      const username = getUsername();
+  const res = await fetch(BASE_URL + "/balance", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ username }) // ✅ CORRECT
+  });
 
-      const res = await fetch(BASE_URL + "/balance/" + username);
-      const data = await res.json();
+  const data = await res.json();
+  document.getElementById("output").innerText = JSON.stringify(data);
+}
 
-      document.getElementById("output").innerText = JSON.stringify(data);
-    }
+// Deposit
+async function deposit() {
+  const username = getUsername();
 
-    async function deposit() {
-      const username = getUsername();
+  const res = await fetch(BASE_URL + "/deposit", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ username, amount: 100 }) // ✅ CORRECT
+  });
 
-      const res = await fetch(BASE_URL + "/deposit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, amount: 100 })
-      });
+  const data = await res.json();
+  document.getElementById("output").innerText = JSON.stringify(data);
+}
 
-      const data = await res.json();
-      document.getElementById("output").innerText = JSON.stringify(data);
-    }
+// Withdraw
+async function withdraw() {
+  const username = getUsername();
 
-    async function withdraw() {
-      const username = getUsername();
+  const res = await fetch(BASE_URL + "/withdraw", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ username, amount: 50 }) // ✅ CORRECT
+  });
 
-      const res = await fetch(BASE_URL + "/withdraw", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, amount: 50 })
-      });
+  const data = await res.json();
+  document.getElementById("output").innerText = JSON.stringify(data);
+}
 
-      const data = await res.json();
-      document.getElementById("output").innerText = JSON.stringify(data);
-    }
+// Transfer
+async function sendMoney() {
+  const from = getUsername();
+  const to = document.getElementById("toUser").value;
 
-    async function transfer() {
-      const from = getUsername();
-      const to = getReceiver();
+  const res = await fetch(BASE_URL + "/transfer", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ from, to, amount: 50 }) // ✅ CORRECT
+  });
 
-      const res = await fetch(BASE_URL + "/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to, amount: 50 })
-      });
-
-      const data = await res.json();
-      document.getElementById("output").innerText = JSON.stringify(data);
-    }
-  </script>
+  const data = await res.json();
+  document.getElementById("output").innerText = JSON.stringify(data);
+}
+</script>
 
 </body>
 </html>

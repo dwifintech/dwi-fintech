@@ -1,130 +1,141 @@
+// ===== IMPORTS =====
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
+const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ FIXED DB PATH (VERY IMPORTANT)
-const DB_FILE = path.join(__dirname, "db.json");
+// ===== CONNECT TO MONGODB =====
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
 
-// Load DB
-function loadDB() {
-  if (!fs.existsSync(DB_FILE)) {
-    return { users: {} };
-  }
-  const data = fs.readFileSync(DB_FILE);
-  return JSON.parse(data);
-}
-
-// Save DB
-function saveDB(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
-// Root route
-app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
+// ===== USER MODEL =====
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true },
+  balance: { type: Number, default: 0 }
 });
 
-// Register user
-app.post("/register", (req, res) => {
-  const { username } = req.body;
-  const db = loadDB();
+const User = mongoose.model("User", userSchema);
 
-  if (!username) {
-    return res.status(400).json({ error: "Username required" });
+// ===== ROUTES =====
+
+// 👉 REGISTER USER
+app.post("/register", async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    let user = await User.findOne({ username });
+
+    if (user) {
+      return res.json({ message: "User already exists", user: username });
+    }
+
+    user = new User({ username, balance: 0 });
+    await user.save();
+
+    res.json({ message: "User created", user: username });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  if (db.users[username]) {
-    return res.status(400).json({ error: "User already exists" });
-  }
-
-  db.users[username] = { balance: 0 };
-  saveDB(db);
-
-  res.json({ message: "User created", user: username });
 });
 
-// Check balance
-app.post("/balance", (req, res) => {
-  const { username } = req.body;
-  const db = loadDB();
+// 👉 DEPOSIT
+app.post("/deposit", async (req, res) => {
+  try {
+    const { username, amount } = req.body;
 
-  if (!db.users[username]) {
-    return res.status(404).json({ error: "User not found" });
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.json({ error: "User not found" });
+    }
+
+    user.balance += Number(amount);
+    await user.save();
+
+    res.json({ message: "Deposit successful", balance: user.balance });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({ balance: db.users[username].balance });
 });
 
-// Deposit
-app.post("/deposit", (req, res) => {
-  const { username, amount } = req.body;
-  const db = loadDB();
+// 👉 WITHDRAW
+app.post("/withdraw", async (req, res) => {
+  try {
+    const { username, amount } = req.body;
 
-  if (!db.users[username]) {
-    return res.status(404).json({ error: "User not found" });
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.json({ error: "User not found" });
+    }
+
+    if (user.balance < amount) {
+      return res.json({ error: "Insufficient funds" });
+    }
+
+    user.balance -= Number(amount);
+    await user.save();
+
+    res.json({ message: "Withdraw successful", balance: user.balance });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  db.users[username].balance += Number(amount);
-  saveDB(db);
-
-  res.json({ balance: db.users[username].balance });
 });
 
-// Withdraw
-app.post("/withdraw", (req, res) => {
-  const { username, amount } = req.body;
-  const db = loadDB();
+// 👉 SEND MONEY
+app.post("/send", async (req, res) => {
+  try {
+    const { from, to, amount } = req.body;
 
-  if (!db.users[username]) {
-    return res.status(404).json({ error: "User not found" });
+    const sender = await User.findOne({ username: from });
+    const receiver = await User.findOne({ username: to });
+
+    if (!sender || !receiver) {
+      return res.json({ error: "User not found" });
+    }
+
+    if (sender.balance < amount) {
+      return res.json({ error: "Insufficient funds" });
+    }
+
+    sender.balance -= Number(amount);
+    receiver.balance += Number(amount);
+
+    await sender.save();
+    await receiver.save();
+
+    res.json({
+      message: "Transfer successful",
+      fromBalance: sender.balance,
+      toBalance: receiver.balance
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  if (db.users[username].balance < amount) {
-    return res.status(400).json({ error: "Insufficient funds" });
-  }
-
-  db.users[username].balance -= Number(amount);
-  saveDB(db);
-
-  res.json({
-    message: "Withdraw successful",
-    balance: db.users[username].balance,
-  });
 });
 
-// Transfer
-app.post("/transfer", (req, res) => {
-  const { from, to, amount } = req.body;
-  const db = loadDB();
+// 👉 CHECK BALANCE
+app.get("/balance/:username", async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
 
-  if (!db.users[from] || !db.users[to]) {
-    return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.json({ error: "User not found" });
+    }
+
+    res.json({ balance: user.balance });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  if (db.users[from].balance < amount) {
-    return res.status(400).json({ error: "Insufficient funds" });
-  }
-
-  db.users[from].balance -= Number(amount);
-  db.users[to].balance += Number(amount);
-
-  saveDB(db);
-
-  res.json({
-    message: "Transfer successful",
-    fromBalance: db.users[from].balance,
-    toBalance: db.users[to].balance,
-  });
 });
 
-// ✅ PORT FIX (RENDER SAFE)
-const PORT = process.env.PORT || 3000;
-
+// ===== START SERVER =====
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });
