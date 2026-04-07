@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const User = require("./models/User");
 
@@ -21,6 +22,11 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.log(err));
 
 // =============================
+// JWT Secret
+// =============================
+const JWT_SECRET = "mysecretkey"; // later we secure this
+
+// =============================
 // Routes
 // =============================
 
@@ -29,16 +35,13 @@ app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = new User({
       name,
       email,
@@ -47,7 +50,6 @@ app.post("/api/register", async (req, res) => {
 
     await user.save();
 
-    // Remove password from response
     const userResponse = user.toObject();
     delete userResponse.password;
 
@@ -61,34 +63,66 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ✅ Login (NEW)
+// ✅ Login (NOW RETURNS TOKEN)
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid password" });
     }
 
-    // Remove password before sending
+    // 🔥 CREATE TOKEN
+    const token = jwt.sign(
+      { id: user._id },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
     const userResponse = user.toObject();
     delete userResponse.password;
 
     res.json({
       message: "Login successful",
+      token,
       user: userResponse
     });
 
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// =============================
+// 🔐 PROTECTED ROUTE (TEST)
+// =============================
+app.get("/api/profile", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select("-password");
+
+    res.json({
+      message: "Protected data",
+      user
+    });
+
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token" });
   }
 });
 
