@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(cors());
 
 /* =======================
-   ROOT ROUTE (FIX)
+   ROOT ROUTE
 ======================= */
 app.get("/", (req, res) => {
   res.send("DWI Fintech API is running 🚀");
@@ -24,7 +24,7 @@ app.get("/", (req, res) => {
 /* =======================
    DATABASE CONNECTION
 ======================= */
-mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dwi-fintech")
+mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB connected"))
 .catch(err => console.log(err));
 
@@ -39,7 +39,7 @@ const auth = (req, res, next) => {
       return res.status(401).json({ message: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "secretkey");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
     req.user = decoded;
     next();
 
@@ -108,7 +108,7 @@ app.post("/api/login", async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id },
-      "secretkey",
+      process.env.JWT_SECRET || "secretkey",
       { expiresIn: "1d" }
     );
 
@@ -134,9 +134,7 @@ app.post("/api/login", async (req, res) => {
 app.get("/api/profile", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-
     res.json(user);
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -149,6 +147,10 @@ app.post("/api/deposit", auth, async (req, res) => {
   try {
     const { amount } = req.body;
 
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
     const user = await User.findById(req.user.id);
 
     user.balance += amount;
@@ -156,6 +158,36 @@ app.post("/api/deposit", auth, async (req, res) => {
 
     res.json({
       message: "Deposit successful",
+      balance: user.balance
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/* =======================
+   WITHDRAW (NEW 🔥)
+======================= */
+app.post("/api/withdraw", auth, async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (user.balance < amount) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+
+    user.balance -= amount;
+    await user.save();
+
+    res.json({
+      message: "Withdrawal successful",
       balance: user.balance
     });
 
