@@ -1,50 +1,42 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const bcrypt = require("bcryptjs");
+
+const User = require("./models/User");
 
 const app = express();
 
-// ===============================
-// MIDDLEWARE
-// ===============================
-app.use(cors());
+// Middleware
 app.use(express.json());
+app.use(cors());
 
-// ===============================
-// USER MODEL
-// ===============================
-const User = require("./models/User");
-
-// ===============================
-// MONGODB CONNECTION
-// ===============================
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected ✅"))
+  .then(() => console.log("MongoDB connected"))
   .catch(err => console.log(err));
 
 // ===============================
-// TEST ROUTE
-// ===============================
-app.get("/", (req, res) => {
-  res.json({ status: "OK", message: "DWI Fintech Backend Running 🚀" });
-});
-
-// ===============================
-// REGISTER
+// REGISTER USER
 // ===============================
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
     const user = new User({
       name,
       email,
-      password
+      password: hashedPassword
     });
 
     await user.save();
@@ -55,43 +47,20 @@ app.post("/api/register", async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ error: error.message });
   }
 });
 
 // ===============================
-// LOGIN
+// TEST ROUTE
 // ===============================
-app.post("/api/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
-    if (user.password !== password) {
-      return res.status(400).json({ message: "Invalid password" });
-    }
-
-    res.json({
-      message: "Login successful",
-      user
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
+app.get("/", (req, res) => {
+  res.json({ status: "OK", message: "DWI Fintech Backend Running 🚀" });
 });
 
-// ===============================
-// START SERVER
 // ===============================
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} 🚀`);
+  console.log(`Server running on port ${PORT}`);
 });
