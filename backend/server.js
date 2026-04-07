@@ -9,10 +9,10 @@ const User = require("./models/User");
 const app = express();
 
 /* =======================
-   MIDDLEWARE
+   MIDDLEWARE (FIX)
 ======================= */
-app.use(express.json());
 app.use(cors());
+app.use(express.json()); // MUST come before routes
 
 /* =======================
    ROOT ROUTE
@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 });
 
 /* =======================
-   DATABASE CONNECTION
+   DATABASE
 ======================= */
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB connected"))
@@ -33,18 +33,21 @@ mongoose.connect(process.env.MONGO_URI)
 ======================= */
 const auth = (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const header = req.headers.authorization;
 
-    if (!token) {
+    if (!header) {
       return res.status(401).json({ message: "No token provided" });
     }
 
+    const token = header.split(" ")[1];
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
+
     req.user = decoded;
     next();
 
-  } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
 
@@ -52,14 +55,17 @@ const auth = (req, res, next) => {
    REGISTER
 ======================= */
 app.post("/api/register", async (req, res) => {
+  console.log("BODY RECEIVED:", req.body); // DEBUG
+
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body || {};
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields required" });
     }
 
     const existingUser = await User.findOne({ email });
+
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -77,15 +83,14 @@ app.post("/api/register", async (req, res) => {
     res.json({
       message: "User registered successfully",
       user: {
-        id: user._id,
         name: user.name,
         email: user.email,
         balance: user.balance
       }
     });
 
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -94,14 +99,16 @@ app.post("/api/register", async (req, res) => {
 ======================= */
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
     const user = await User.findOne({ email });
+
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -116,27 +123,14 @@ app.post("/api/login", async (req, res) => {
       message: "Login successful",
       token,
       user: {
-        id: user._id,
         name: user.name,
         email: user.email,
         balance: user.balance
       }
     });
 
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-/* =======================
-   PROFILE
-======================= */
-app.get("/api/profile", auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -145,7 +139,7 @@ app.get("/api/profile", auth, async (req, res) => {
 ======================= */
 app.post("/api/deposit", auth, async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount } = req.body || {};
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "Invalid amount" });
@@ -161,17 +155,17 @@ app.post("/api/deposit", auth, async (req, res) => {
       balance: user.balance
     });
 
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
 /* =======================
-   WITHDRAW (NEW 🔥)
+   WITHDRAW
 ======================= */
 app.post("/api/withdraw", auth, async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount } = req.body || {};
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "Invalid amount" });
@@ -191,8 +185,8 @@ app.post("/api/withdraw", auth, async (req, res) => {
       balance: user.balance
     });
 
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
