@@ -8,38 +8,31 @@ const User = require("./models/User");
 
 const app = express();
 
-// =============================
-// Middleware
-// =============================
-app.use(express.json());
+// ==============================
+// MIDDLEWARE
+// ==============================
 app.use(cors());
+app.use(express.json());
 
-// =============================
-// MongoDB Connection
-// =============================
+// ==============================
+// DATABASE CONNECTION
+// ==============================
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected ✅"))
-  .catch(err => console.log(err));
+.then(() => console.log("MongoDB connected"))
+.catch(err => console.log(err));
 
-// =============================
-// JWT Secret
-// =============================
-const JWT_SECRET = "mysecretkey";
+// ==============================
+// AUTH MIDDLEWARE
+// ==============================
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
 
-// =============================
-// Auth Middleware
-// =============================
-const auth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
+  if (!token) {
     return res.status(401).json({ message: "No token provided" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, "secretkey");
     req.user = decoded;
     next();
   } catch (err) {
@@ -47,11 +40,18 @@ const auth = (req, res, next) => {
   }
 };
 
-// =============================
-// Routes
-// =============================
+// ==============================
+// ROUTES
+// ==============================
 
-// ✅ Register
+// ✅ ROOT TEST
+app.get("/", (req, res) => {
+  res.json({ status: "OK", message: "DWI Fintech Backend Running 🚀" });
+});
+
+// ==============================
+// REGISTER
+// ==============================
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -71,20 +71,24 @@ app.post("/api/register", async (req, res) => {
 
     await user.save();
 
-    const userResponse = user.toObject();
-    delete userResponse.password;
-
     res.json({
       message: "User registered successfully",
-      user: userResponse
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        balance: user.balance
+      }
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// ✅ Login
+// ==============================
+// LOGIN
+// ==============================
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -96,35 +100,55 @@ app.post("/api/login", async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid password" });
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const token = jwt.sign(
       { id: user._id },
-      JWT_SECRET,
+      "secretkey",
       { expiresIn: "1d" }
     );
-
-    const userResponse = user.toObject();
-    delete userResponse.password;
 
     res.json({
       message: "Login successful",
       token,
-      user: userResponse
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        balance: user.balance
+      }
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// =============================
-// 💰 Deposit
-// =============================
-app.post("/api/deposit", auth, async (req, res) => {
+// ==============================
+// PROFILE (PROTECTED)
+// ==============================
+app.get("/api/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    res.json(user);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ==============================
+// DEPOSIT
+// ==============================
+app.post("/api/deposit", authMiddleware, async (req, res) => {
   try {
     const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
 
     const user = await User.findById(req.user.id);
 
@@ -137,21 +161,25 @@ app.post("/api/deposit", auth, async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// =============================
-// 💸 Withdraw
-// =============================
-app.post("/api/withdraw", auth, async (req, res) => {
+// ==============================
+// WITHDRAW
+// ==============================
+app.post("/api/withdraw", authMiddleware, async (req, res) => {
   try {
     const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
 
     const user = await User.findById(req.user.id);
 
     if (user.balance < amount) {
-      return res.status(400).json({ message: "Insufficient funds" });
+      return res.status(400).json({ message: "Insufficient balance" });
     }
 
     user.balance -= amount;
@@ -163,24 +191,13 @@ app.post("/api/withdraw", auth, async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// =============================
-// 👤 Profile
-// =============================
-app.get("/api/profile", auth, async (req, res) => {
-  const user = await User.findById(req.user.id).select("-password");
-
-  res.json({
-    user
-  });
-});
-
-// =============================
-// Start Server
-// =============================
+// ==============================
+// SERVER START
+// ==============================
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
