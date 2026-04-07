@@ -24,7 +24,28 @@ mongoose.connect(process.env.MONGO_URI)
 // =============================
 // JWT Secret
 // =============================
-const JWT_SECRET = "mysecretkey"; // later we secure this
+const JWT_SECRET = "mysecretkey";
+
+// =============================
+// Auth Middleware
+// =============================
+const auth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
 
 // =============================
 // Routes
@@ -63,7 +84,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ✅ Login (NOW RETURNS TOKEN)
+// ✅ Login
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -78,7 +99,6 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
 
-    // 🔥 CREATE TOKEN
     const token = jwt.sign(
       { id: user._id },
       JWT_SECRET,
@@ -100,30 +120,62 @@ app.post("/api/login", async (req, res) => {
 });
 
 // =============================
-// 🔐 PROTECTED ROUTE (TEST)
+// 💰 Deposit
 // =============================
-app.get("/api/profile", async (req, res) => {
+app.post("/api/deposit", auth, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
+    const { amount } = req.body;
 
-    if (!authHeader) {
-      return res.status(401).json({ message: "No token provided" });
-    }
+    const user = await User.findById(req.user.id);
 
-    const token = authHeader.split(" ")[1];
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    const user = await User.findById(decoded.id).select("-password");
+    user.balance += amount;
+    await user.save();
 
     res.json({
-      message: "Protected data",
-      user
+      message: "Deposit successful",
+      balance: user.balance
     });
 
   } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
+    res.status(500).json({ error: error.message });
   }
+});
+
+// =============================
+// 💸 Withdraw
+// =============================
+app.post("/api/withdraw", auth, async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (user.balance < amount) {
+      return res.status(400).json({ message: "Insufficient funds" });
+    }
+
+    user.balance -= amount;
+    await user.save();
+
+    res.json({
+      message: "Withdrawal successful",
+      balance: user.balance
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// =============================
+// 👤 Profile
+// =============================
+app.get("/api/profile", auth, async (req, res) => {
+  const user = await User.findById(req.user.id).select("-password");
+
+  res.json({
+    user
+  });
 });
 
 // =============================
