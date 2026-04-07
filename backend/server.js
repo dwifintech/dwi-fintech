@@ -7,11 +7,15 @@ const User = require("./models/User");
 
 const app = express();
 
+// ===============================
 // Middleware
+// ===============================
 app.use(express.json());
 app.use(cors());
 
+// ===============================
 // MongoDB connection
+// ===============================
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.log(err));
@@ -41,9 +45,12 @@ app.post("/api/register", async (req, res) => {
 
     await user.save();
 
+    // Remove password before sending response
+    const { password: _, ...userWithoutPassword } = user._doc;
+
     res.json({
       message: "User registered successfully",
-      user
+      user: userWithoutPassword
     });
 
   } catch (error) {
