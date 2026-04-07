@@ -1,36 +1,41 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-const User = require("./models/User");
+const cors = require("cors");
 
 const app = express();
-
-/* =======================
-   MIDDLEWARE (FIX)
-======================= */
+app.use(express.json());
 app.use(cors());
-app.use(express.json()); // MUST come before routes
 
-/* =======================
-   ROOT ROUTE
-======================= */
-app.get("/", (req, res) => {
-  res.send("DWI Fintech API is running 🚀");
-});
+/*
+========================
+DB CONNECT
+========================
+*/
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
 
-/* =======================
-   DATABASE
-======================= */
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.log(err));
+/*
+========================
+USER MODEL
+========================
+*/
+const User = mongoose.model("User", new mongoose.Schema({
+  name: String,
+  email: { type: String, unique: true },
+  password: String,
+  balance: { type: Number, default: 0 }
+}));
 
-/* =======================
-   AUTH MIDDLEWARE
-======================= */
+/*
+========================
+AUTH MIDDLEWARE
+========================
+*/
 const auth = (req, res, next) => {
   try {
     const header = req.headers.authorization;
@@ -40,10 +45,9 @@ const auth = (req, res, next) => {
     }
 
     const token = header.split(" ")[1];
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
 
-    req.user = decoded.id;
+    req.user = decoded.id; // ✅ IMPORTANT FIX
     next();
 
   } catch (err) {
@@ -51,12 +55,12 @@ const auth = (req, res, next) => {
   }
 };
 
-/* =======================
-   REGISTER
-======================= */
+/*
+========================
+REGISTER
+========================
+*/
 app.post("/api/register", async (req, res) => {
-  console.log("BODY RECEIVED:", req.body); // DEBUG
-
   try {
     const { name, email, password } = req.body || {};
 
@@ -65,7 +69,6 @@ app.post("/api/register", async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
-
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -80,23 +83,18 @@ app.post("/api/register", async (req, res) => {
 
     await user.save();
 
-    res.json({
-      message: "User registered successfully",
-      user: {
-        name: user.name,
-        email: user.email,
-        balance: user.balance
-      }
-    });
+    res.json({ message: "Registered successfully" });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-/* =======================
-   LOGIN
-======================= */
+/*
+========================
+LOGIN
+========================
+*/
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -122,11 +120,7 @@ app.post("/api/login", async (req, res) => {
     res.json({
       message: "Login successful",
       token,
-      user: {
-        name: user.name,
-        email: user.email,
-        balance: user.balance
-      }
+      user
     });
 
   } catch (err) {
@@ -134,9 +128,11 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-/* =======================
-   DEPOSIT
-======================= */
+/*
+========================
+DEPOSIT
+========================
+*/
 app.post("/api/deposit", auth, async (req, res) => {
   try {
     const { amount } = req.body || {};
@@ -145,7 +141,11 @@ app.post("/api/deposit", auth, async (req, res) => {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     user.balance += amount;
     await user.save();
@@ -160,9 +160,11 @@ app.post("/api/deposit", auth, async (req, res) => {
   }
 });
 
-/* =======================
-   WITHDRAW
-======================= */
+/*
+========================
+WITHDRAW
+========================
+*/
 app.post("/api/withdraw", auth, async (req, res) => {
   try {
     const { amount } = req.body || {};
@@ -171,7 +173,11 @@ app.post("/api/withdraw", auth, async (req, res) => {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     if (user.balance < amount) {
       return res.status(400).json({ message: "Insufficient balance" });
@@ -184,7 +190,13 @@ app.post("/api/withdraw", auth, async (req, res) => {
       message: "Withdrawal successful",
       balance: user.balance
     });
-    /*
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/*
 ========================
 TRANSFER
 ========================
@@ -193,12 +205,10 @@ app.post("/api/transfer", auth, async (req, res) => {
   try {
     const { email, amount } = req.body || {};
 
-    // Validate input
     if (!email || !amount || amount <= 0) {
       return res.status(400).json({ message: "Email and valid amount required" });
     }
 
-    // Sender (logged-in user)
     const sender = await User.findById(req.user);
 
     if (!sender) {
@@ -209,7 +219,6 @@ app.post("/api/transfer", auth, async (req, res) => {
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
-    // Receiver
     const receiver = await User.findOne({ email });
 
     if (!receiver) {
@@ -220,7 +229,6 @@ app.post("/api/transfer", auth, async (req, res) => {
       return res.status(400).json({ message: "Cannot transfer to yourself" });
     }
 
-    // Transfer
     sender.balance -= amount;
     receiver.balance += amount;
 
@@ -237,14 +245,11 @@ app.post("/api/transfer", auth, async (req, res) => {
   }
 });
 
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-/* =======================
-   SERVER
-======================= */
+/*
+========================
+SERVER
+========================
+*/
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
