@@ -184,6 +184,58 @@ app.post("/api/withdraw", auth, async (req, res) => {
       message: "Withdrawal successful",
       balance: user.balance
     });
+    /*
+========================
+TRANSFER
+========================
+*/
+app.post("/api/transfer", auth, async (req, res) => {
+  try {
+    const { email, amount } = req.body || {};
+
+    // Validate input
+    if (!email || !amount || amount <= 0) {
+      return res.status(400).json({ message: "Email and valid amount required" });
+    }
+
+    // Sender (logged-in user)
+    const sender = await User.findById(req.user);
+
+    if (!sender) {
+      return res.status(404).json({ message: "Sender not found" });
+    }
+
+    if (sender.balance < amount) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+
+    // Receiver
+    const receiver = await User.findOne({ email });
+
+    if (!receiver) {
+      return res.status(404).json({ message: "Receiver not found" });
+    }
+
+    if (receiver._id.toString() === sender._id.toString()) {
+      return res.status(400).json({ message: "Cannot transfer to yourself" });
+    }
+
+    // Transfer
+    sender.balance -= amount;
+    receiver.balance += amount;
+
+    await sender.save();
+    await receiver.save();
+
+    res.json({
+      message: "Transfer successful",
+      senderBalance: sender.balance
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
   } catch (err) {
     res.status(500).json({ message: err.message });
