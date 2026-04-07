@@ -9,10 +9,17 @@ const User = require("./models/User");
 const app = express();
 
 /* =======================
-   🔥 MIDDLEWARE
+   MIDDLEWARE
 ======================= */
-app.use(express.json()); // ✅ FIX (VERY IMPORTANT)
+app.use(express.json());
 app.use(cors());
+
+/* =======================
+   ROOT ROUTE (FIX)
+======================= */
+app.get("/", (req, res) => {
+  res.send("DWI Fintech API is running 🚀");
+});
 
 /* =======================
    DATABASE CONNECTION
@@ -32,7 +39,7 @@ const auth = (req, res, next) => {
       return res.status(401).json({ message: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "secretkey"); // ⚠️ later move to env
+    const decoded = jwt.verify(token, "secretkey");
     req.user = decoded;
     next();
 
