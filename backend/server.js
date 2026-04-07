@@ -5,19 +5,32 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
 const app = express();
+
+/*
+========================
+MIDDLEWARE
+========================
+*/
 app.use(express.json());
 app.use(cors());
 
 /*
 ========================
-DB CONNECT
+ROOT ROUTE (RESTORED)
 ========================
 */
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
+app.get("/", (req, res) => {
+  res.send("API is running 🚀");
+});
+
+/*
+========================
+DATABASE
+========================
+*/
+mongoose.connect(process.env.MONGO_URI)
+.then(() => console.log("MongoDB connected"))
+.catch(err => console.log(err));
 
 /*
 ========================
@@ -45,9 +58,11 @@ const auth = (req, res, next) => {
     }
 
     const token = header.split(" ")[1];
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
 
-    req.user = decoded.id; // ✅ IMPORTANT FIX
+    req.user = decoded.id; // ✅ FIXED
+
     next();
 
   } catch (err) {
@@ -68,17 +83,18 @@ app.post("/api/register", async (req, res) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    const exists = await User.findOne({ email });
+
+    if (exists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
     const user = new User({
       name,
       email,
-      password: hashedPassword
+      password: hashed
     });
 
     await user.save();
@@ -105,9 +121,9 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "User not found" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) {
+    if (!match) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
@@ -143,10 +159,6 @@ app.post("/api/deposit", auth, async (req, res) => {
 
     const user = await User.findById(req.user);
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
     user.balance += amount;
     await user.save();
 
@@ -174,10 +186,6 @@ app.post("/api/withdraw", auth, async (req, res) => {
     }
 
     const user = await User.findById(req.user);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
 
     if (user.balance < amount) {
       return res.status(400).json({ message: "Insufficient balance" });
