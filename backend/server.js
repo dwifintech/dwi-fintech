@@ -7,22 +7,24 @@ const User = require("./models/User");
 
 const app = express();
 
-// ===============================
+// =============================
 // Middleware
-// ===============================
+// =============================
 app.use(express.json());
 app.use(cors());
 
-// ===============================
-// MongoDB connection
-// ===============================
+// =============================
+// MongoDB Connection
+// =============================
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
+  .then(() => console.log("MongoDB connected ✅"))
   .catch(err => console.log(err));
 
-// ===============================
-// REGISTER USER
-// ===============================
+// =============================
+// Routes
+// =============================
+
+// ✅ Register
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -45,12 +47,13 @@ app.post("/api/register", async (req, res) => {
 
     await user.save();
 
-    // Remove password before sending response
-    const { password: _, ...userWithoutPassword } = user._doc;
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
 
     res.json({
       message: "User registered successfully",
-      user: userWithoutPassword
+      user: userResponse
     });
 
   } catch (error) {
@@ -58,14 +61,40 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ===============================
-// TEST ROUTE
-// ===============================
-app.get("/", (req, res) => {
-  res.json({ status: "OK", message: "DWI Fintech Backend Running 🚀" });
+// ✅ Login (NEW)
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid password" });
+    }
+
+    // Remove password before sending
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.json({
+      message: "Login successful",
+      user: userResponse
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// ===============================
+// =============================
+// Start Server
+// =============================
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
