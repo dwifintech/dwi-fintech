@@ -8,53 +8,46 @@ const User = require("./models/User");
 
 const app = express();
 
-// ==============================
-// MIDDLEWARE
-// ==============================
+/* =======================
+   🔥 MIDDLEWARE
+======================= */
+app.use(express.json()); // ✅ FIX (VERY IMPORTANT)
 app.use(cors());
-app.use(express.json());
 
-// ==============================
-// DATABASE CONNECTION
-// ==============================
-mongoose.connect(process.env.MONGO_URI)
+/* =======================
+   DATABASE CONNECTION
+======================= */
+mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dwi-fintech")
 .then(() => console.log("MongoDB connected"))
 .catch(err => console.log(err));
 
-// ==============================
-// AUTH MIDDLEWARE
-// ==============================
-const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
+/* =======================
+   AUTH MIDDLEWARE
+======================= */
+const auth = (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, "secretkey");
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const decoded = jwt.verify(token, "secretkey"); // ⚠️ later move to env
     req.user = decoded;
     next();
-  } catch (err) {
+
+  } catch (error) {
     res.status(401).json({ message: "Invalid token" });
   }
 };
 
-// ==============================
-// ROOT
-// ==============================
-app.get("/", (req, res) => {
-  res.json({ status: "OK", message: "Backend running 🚀" });
-});
-
-// ==============================
-// REGISTER
-// ==============================
+/* =======================
+   REGISTER
+======================= */
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // ✅ FIX: Validate inputs BEFORE hashing
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields required" });
     }
@@ -89,16 +82,12 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ==============================
-// LOGIN
-// ==============================
+/* =======================
+   LOGIN
+======================= */
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "All fields required" });
-    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -132,16 +121,26 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ==============================
-// DEPOSIT
-// ==============================
-app.post("/api/deposit", authMiddleware, async (req, res) => {
+/* =======================
+   PROFILE
+======================= */
+app.get("/api/profile", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    res.json(user);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/* =======================
+   DEPOSIT
+======================= */
+app.post("/api/deposit", auth, async (req, res) => {
   try {
     const { amount } = req.body;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
 
     const user = await User.findById(req.user.id);
 
@@ -158,39 +157,9 @@ app.post("/api/deposit", authMiddleware, async (req, res) => {
   }
 });
 
-// ==============================
-// WITHDRAW
-// ==============================
-app.post("/api/withdraw", authMiddleware, async (req, res) => {
-  try {
-    const { amount } = req.body;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
-    const user = await User.findById(req.user.id);
-
-    if (user.balance < amount) {
-      return res.status(400).json({ message: "Insufficient balance" });
-    }
-
-    user.balance -= amount;
-    await user.save();
-
-    res.json({
-      message: "Withdrawal successful",
-      balance: user.balance
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// ==============================
-// SERVER
-// ==============================
+/* =======================
+   SERVER
+======================= */
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
