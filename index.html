@@ -1,108 +1,143 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DWI Fintech App</title>
+  <title>DWI Fintech - Login</title>
+
+  <style>
+    body {
+      margin:0;
+      font-family:Arial;
+      background:#0b0e11;
+      color:white;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+    }
+
+    .card {
+      background:#11161c;
+      padding:30px;
+      border-radius:10px;
+      width:300px;
+      text-align:center;
+    }
+
+    h2 {
+      color:#f0b90b;
+    }
+
+    input {
+      width:100%;
+      padding:10px;
+      margin:10px 0;
+      background:#1a222d;
+      border:none;
+      color:white;
+    }
+
+    button {
+      width:100%;
+      padding:10px;
+      background:#f0b90b;
+      border:none;
+      cursor:pointer;
+    }
+
+    .link {
+      margin-top:10px;
+      font-size:14px;
+      color:#aaa;
+      cursor:pointer;
+    }
+
+  </style>
 </head>
+
 <body>
 
-<h1>DWI Fintech App</h1>
+<div class="card">
+  <h2>DWI FINTECH</h2>
 
-<!-- Register -->
-<input id="username" placeholder="Enter username">
-<button onclick="register()">Register</button>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
 
-<br><br>
+  <button onclick="login()">Login</button>
 
-<!-- Transfer -->
-<input id="toUser" placeholder="Send to (username)">
-<button onclick="sendMoney()">Send 50</button>
-
-<br><br>
-
-<!-- Actions -->
-<button onclick="checkBalance()">Check Balance</button>
-<button onclick="deposit()">Deposit 100</button>
-<button onclick="withdraw()">Withdraw 50</button>
-
-<p id="output"></p>
+  <div class="link" onclick="register()">Create Account</div>
+</div>
 
 <script>
-const BASE_URL = "https://dwi-fintech-backend.onrender.com";
 
-function getUsername() {
-  return document.getElementById("username").value;
+const API = "https://dwi-fintech-backend.onrender.com";
+
+// 🔐 LOGIN (FIXED)
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch(API + "/api/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await res.json();
+
+  if (data.token) {
+    // ✅ SAVE TOKEN (THIS FIXES YOUR ISSUE)
+    localStorage.setItem("token", data.token);
+
+    // ✅ REDIRECT
+    window.location = "app.html";
+
+  } else {
+    alert(data.message || "Login failed");
+  }
 }
 
-// Register
+// 🆕 REGISTER QUICK (AUTO LOGIN)
 async function register() {
-  const username = getUsername();
+  const email = prompt("Enter email");
+  const password = prompt("Enter password");
+  const name = prompt("Enter name");
 
-  const res = await fetch(BASE_URL + "/register", {
+  const res = await fetch(API + "/api/register", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ username }) // ✅ CORRECT
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ name, email, password })
   });
 
   const data = await res.json();
-  document.getElementById("output").innerText = JSON.stringify(data);
+
+  alert(data.message);
+
+  // Auto login after register
+  loginAuto(email, password);
 }
 
-// Check Balance
-async function checkBalance() {
-  const username = getUsername();
-
-  const res = await fetch(BASE_URL + "/balance", {
+// 🔁 AUTO LOGIN
+async function loginAuto(email, password) {
+  const res = await fetch(API + "/api/login", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ username }) // ✅ CORRECT
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, password })
   });
 
   const data = await res.json();
-  document.getElementById("output").innerText = JSON.stringify(data);
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    window.location = "app.html";
+  }
 }
 
-// Deposit
-async function deposit() {
-  const username = getUsername();
-
-  const res = await fetch(BASE_URL + "/deposit", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ username, amount: 100 }) // ✅ CORRECT
-  });
-
-  const data = await res.json();
-  document.getElementById("output").innerText = JSON.stringify(data);
-}
-
-// Withdraw
-async function withdraw() {
-  const username = getUsername();
-
-  const res = await fetch(BASE_URL + "/withdraw", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ username, amount: 50 }) // ✅ CORRECT
-  });
-
-  const data = await res.json();
-  document.getElementById("output").innerText = JSON.stringify(data);
-}
-
-// Transfer
-async function sendMoney() {
-  const from = getUsername();
-  const to = document.getElementById("toUser").value;
-
-  const res = await fetch(BASE_URL + "/transfer", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ from, to, amount: 50 }) // ✅ CORRECT
-  });
-
-  const data = await res.json();
-  document.getElementById("output").innerText = JSON.stringify(data);
-}
 </script>
 
 </body>

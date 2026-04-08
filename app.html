@@ -2,31 +2,62 @@
 <html>
 <head>
   <title>DWI Fintech</title>
+
   <style>
     body {
-      background: #0b0b0b;
-      color: white;
-      font-family: Arial;
-      display: flex;
+      margin:0;
+      font-family:Arial;
+      background:#0b0e11;
+      color:white;
+      display:flex;
     }
+
     .sidebar {
-      width: 200px;
-      padding: 20px;
+      width:200px;
+      background:#11161c;
+      padding:20px;
+      height:100vh;
     }
+
+    .sidebar h2 {
+      color:#f0b90b;
+    }
+
     .main {
-      padding: 20px;
+      flex:1;
+      padding:30px;
     }
+
+    .card {
+      background:#11161c;
+      padding:20px;
+      margin-bottom:20px;
+      border-radius:10px;
+    }
+
     input {
-      padding: 10px;
-      margin: 10px 0;
-      width: 200px;
+      padding:10px;
+      margin:5px 0;
+      width:200px;
+      background:#1a222d;
+      border:none;
+      color:white;
     }
+
     button {
-      background: gold;
-      border: none;
-      padding: 10px;
-      cursor: pointer;
+      background:#f0b90b;
+      border:none;
+      padding:10px;
+      cursor:pointer;
+      margin-top:5px;
     }
+
+    .balance {
+      font-size:20px;
+      margin-top:10px;
+      color:#f0b90b;
+    }
+
   </style>
 </head>
 
@@ -34,65 +65,152 @@
 
 <div class="sidebar">
   <h2>DWI FINTECH</h2>
-  <p>Dashboard</p>
-  <p>Wallet</p>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <div class="main">
-  <h2>Wallet</h2>
 
-  <h3>Deposit</h3>
-  <input id="depositAmount" placeholder="Amount">
-  <button onclick="deposit()">Deposit</button>
+  <div class="card">
+    <h3>Balance</h3>
+    <div class="balance">$<span id="balance">0</span></div>
+  </div>
 
-  <h3>Withdraw</h3>
-  <input id="withdrawAmount" placeholder="Amount">
-  <button onclick="withdraw()">Withdraw</button>
+  <div class="card">
+    <h3>Deposit</h3>
+    <input id="depositAmount" placeholder="Amount">
+    <br>
+    <button onclick="deposit()">Deposit</button>
+  </div>
 
-  <h3>Balance: $<span id="balance">0</span></h3>
+  <div class="card">
+    <h3>Withdraw</h3>
+    <input id="withdrawAmount" placeholder="Amount">
+    <br>
+    <button onclick="withdraw()">Withdraw</button>
+  </div>
+
+  <div class="card">
+    <h3>Transfer</h3>
+    <input id="transferEmail" placeholder="Receiver email">
+    <br>
+    <input id="transferAmount" placeholder="Amount">
+    <br>
+    <button onclick="transfer()">Send</button>
+  </div>
+
 </div>
 
 <script>
-const API = "http://localhost:3000";
 
-async function getBalance() {
+const API = "https://dwi-fintech-backend.onrender.com";
+
+// 🔐 GET TOKEN
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+// 🚪 LOGOUT
+function logout() {
+  localStorage.removeItem("token");
+  window.location = "index.html";
+}
+
+// 👤 LOAD USER (FIXED)
+async function loadUser() {
+  const token = getToken();
+
+  if (!token) {
+    alert("Session expired. Login again");
+    window.location = "index.html";
+    return;
+  }
+
   try {
-    const res = await fetch(API + "/balance");
+    const res = await fetch(API + "/api/me", {
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    if (res.status === 401) {
+      alert("Session expired. Login again");
+      logout();
+      return;
+    }
+
     const data = await res.json();
+
     document.getElementById("balance").innerText = data.balance;
+
   } catch (err) {
-    alert("Backend not reachable");
+    alert("Server error");
   }
 }
 
+// 💰 DEPOSIT
 async function deposit() {
   const amount = document.getElementById("depositAmount").value;
 
-  await fetch(API + "/deposit", {
+  const res = await fetch(API + "/api/deposit", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + getToken()
+    },
     body: JSON.stringify({ amount: Number(amount) })
   });
 
-  alert("Deposit successful");
-  getBalance(); // 🔥 update immediately
+  const data = await res.json();
+  alert(data.message);
+
+  loadUser();
 }
 
+// 💸 WITHDRAW
 async function withdraw() {
   const amount = document.getElementById("withdrawAmount").value;
 
-  await fetch(API + "/withdraw", {
+  const res = await fetch(API + "/api/withdraw", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + getToken()
+    },
     body: JSON.stringify({ amount: Number(amount) })
   });
 
-  alert("Withdraw successful");
-  getBalance(); // 🔥 update immediately
+  const data = await res.json();
+  alert(data.message);
+
+  loadUser();
 }
 
-// 🔥 load balance when page opens
-getBalance();
+// 🔄 TRANSFER
+async function transfer() {
+  const email = document.getElementById("transferEmail").value;
+  const amount = document.getElementById("transferAmount").value;
+
+  const res = await fetch(API + "/api/transfer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + getToken()
+    },
+    body: JSON.stringify({
+      email,
+      amount: Number(amount)
+    })
+  });
+
+  const data = await res.json();
+  alert(data.message);
+
+  loadUser();
+}
+
+// 🚀 LOAD ON START
+loadUser();
+
 </script>
 
 </body>

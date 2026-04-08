@@ -44,94 +44,74 @@ input{
 
 <div class="card">
 <h3>Deposits</h3>
-<div id="deposits"></div>
+<div id="deposits">Loading...</div>
 </div>
 
 <div class="card">
 <h3>Withdrawals</h3>
-<div id="withdrawals"></div>
+<div id="withdrawals">Loading...</div>
 </div>
 
 <script>
 
-// 🔐 ADMIN PASSWORD PROTECTION
+// 🔐 SIMPLE ADMIN ACCESS
 let pass = prompt("Enter admin password");
 
-if(pass !== "DWI123"){
+if(!pass || pass !== "DWI123"){
   alert("Access denied");
   window.location="index.html";
 }
 
-// 🔗 API
-const API = "https://dwi-fintech.onrender.com";
+// 🔗 FIXED API
+const API = "https://dwi-fintech-backend.onrender.com";
 
 // 📥 LOAD DEPOSITS
 async function loadDeposits(){
-  let res = await fetch(API + "/admin/deposits");
-  let data = await res.json();
+  try{
+    let res = await fetch(API + "/admin/deposits");
+    let data = await res.json();
 
-  if(data.length === 0){
-    deposits.innerHTML = "No deposit requests";
-    return;
+    if(!data || data.length === 0){
+      deposits.innerHTML = "No deposit requests";
+      return;
+    }
+
+    deposits.innerHTML = data.map(d => `
+      <p>
+        <b>${d.email}</b> → $${d.amount} 
+        [${d.status}]
+      </p>
+    `).join("");
+
+  }catch{
+    deposits.innerHTML = "Admin backend not ready";
   }
-
-  deposits.innerHTML = data.map(d => `
-    <p>
-      <b>${d.email}</b> → $${d.amount} 
-      [${d.status}]
-      ${d.status === "pending" ? 
-        `<button onclick="approveDeposit(${d.id})">Approve</button>` 
-        : ""}
-    </p>
-  `).join("");
-}
-
-// ✅ APPROVE DEPOSIT
-async function approveDeposit(id){
-  let res = await fetch(API + "/admin/approve-deposit", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id})
-  });
-
-  alert(await res.text());
-  loadDeposits();
 }
 
 // 📤 LOAD WITHDRAWALS
 async function loadWithdrawals(){
-  let res = await fetch(API + "/admin/withdrawals");
-  let data = await res.json();
+  try{
+    let res = await fetch(API + "/admin/withdrawals");
+    let data = await res.json();
 
-  if(data.length === 0){
-    withdrawals.innerHTML = "No withdrawal requests";
-    return;
+    if(!data || data.length === 0){
+      withdrawals.innerHTML = "No withdrawal requests";
+      return;
+    }
+
+    withdrawals.innerHTML = data.map(w => `
+      <p>
+        <b>${w.email}</b> → $${w.amount} 
+        [${w.status}]
+      </p>
+    `).join("");
+
+  }catch{
+    withdrawals.innerHTML = "Admin backend not ready";
   }
-
-  withdrawals.innerHTML = data.map(w => `
-    <p>
-      <b>${w.email}</b> → $${w.amount} 
-      [${w.status}]
-      ${w.status === "pending" ? 
-        `<button onclick="approveWithdraw(${w.id})">Approve</button>` 
-        : ""}
-    </p>
-  `).join("");
 }
 
-// ✅ APPROVE WITHDRAWAL
-async function approveWithdraw(id){
-  let res = await fetch(API + "/admin/approve-withdraw", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id})
-  });
-
-  alert(await res.text());
-  loadWithdrawals();
-}
-
-// 🔄 AUTO LOAD
+// 🔄 LOAD
 loadDeposits();
 loadWithdrawals();
 
