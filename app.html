@@ -1,217 +1,108 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
-  <title>DWI Fintech</title>
-
-  <style>
-    body {
-      margin:0;
-      font-family:Arial;
-      background:#0b0e11;
-      color:white;
-      display:flex;
-    }
-
-    .sidebar {
-      width:200px;
-      background:#11161c;
-      padding:20px;
-      height:100vh;
-    }
-
-    .sidebar h2 {
-      color:#f0b90b;
-    }
-
-    .main {
-      flex:1;
-      padding:30px;
-    }
-
-    .card {
-      background:#11161c;
-      padding:20px;
-      margin-bottom:20px;
-      border-radius:10px;
-    }
-
-    input {
-      padding:10px;
-      margin:5px 0;
-      width:200px;
-      background:#1a222d;
-      border:none;
-      color:white;
-    }
-
-    button {
-      background:#f0b90b;
-      border:none;
-      padding:10px;
-      cursor:pointer;
-      margin-top:5px;
-    }
-
-    .balance {
-      font-size:20px;
-      margin-top:10px;
-      color:#f0b90b;
-    }
-
-  </style>
-</head>
-
-<body>
-
-<div class="sidebar">
-  <h2>DWI FINTECH</h2>
-  <button onclick="logout()">Logout</button>
-</div>
-
-<div class="main">
-
-  <div class="card">
-    <h3>Balance</h3>
-    <div class="balance">$<span id="balance">0</span></div>
-  </div>
-
-  <div class="card">
-    <h3>Deposit</h3>
-    <input id="depositAmount" placeholder="Amount">
-    <br>
-    <button onclick="deposit()">Deposit</button>
-  </div>
-
-  <div class="card">
-    <h3>Withdraw</h3>
-    <input id="withdrawAmount" placeholder="Amount">
-    <br>
-    <button onclick="withdraw()">Withdraw</button>
-  </div>
-
-  <div class="card">
-    <h3>Transfer</h3>
-    <input id="transferEmail" placeholder="Receiver email">
-    <br>
-    <input id="transferAmount" placeholder="Amount">
-    <br>
-    <button onclick="transfer()">Send</button>
-  </div>
-
-</div>
-
-<script>
+<title>DWI FINTECH</title><style>
+body{background:#0b0e11;color:white;font-family:Arial;padding:20px;}
+.card{background:#11161c;padding:15px;margin:15px;border-radius:8px;}
+button{background:#f0b90b;border:none;padding:8px;cursor:pointer;}
+input{padding:5px;margin:5px;}
+</style></head><body><h2>DWI FINTECH 🚀</h2><div class="card">
+<h3>Wallet: <span id="balance">0</span></h3>
+<h3>Trading: <span id="subBalance">0</span></h3>
+</div><div class="card">
+<input id="amt" placeholder="Amount">
+<button onclick="toSub()">Wallet → Trading</button><br><input id="amt2" placeholder="Amount">
+<button onclick="toWallet()">Trading → Wallet</button>
+</div><div class="card">
+<h3>📊 Market</h3>
+<p id="market"></p>
+<button onclick="loadMarket()">Refresh</button>
+</div><div class="card">
+<h3>💱 Trade</h3>
+<input id="amount" placeholder="USDT">
+<input id="buy" placeholder="Buy Price">
+<input id="sell" placeholder="Sell Price">
+<button onclick="trade()">Execute</button>
+</div><div class="card">
+<h3>📊 Performance</h3>
+<p id="perf"></p>
+</div><script>
 
 const API = "https://dwi-fintech-backend.onrender.com";
+const token = localStorage.getItem("token");
 
-// 🔐 GET TOKEN
-function getToken() {
-  return localStorage.getItem("token");
-}
-
-// 🚪 LOGOUT
-function logout() {
-  localStorage.removeItem("token");
-  window.location = "index.html";
-}
-
-// 👤 LOAD USER (FIXED)
-async function loadUser() {
-  const token = getToken();
-
-  if (!token) {
-    alert("Session expired. Login again");
-    window.location = "index.html";
-    return;
-  }
-
-  try {
-    const res = await fetch(API + "/api/me", {
-      headers: {
-        "Authorization": "Bearer " + token
-      }
-    });
-
-    if (res.status === 401) {
-      alert("Session expired. Login again");
-      logout();
-      return;
-    }
-
-    const data = await res.json();
-
-    document.getElementById("balance").innerText = data.balance;
-
-  } catch (err) {
-    alert("Server error");
-  }
-}
-
-// 💰 DEPOSIT
-async function deposit() {
-  const amount = document.getElementById("depositAmount").value;
-
-  const res = await fetch(API + "/api/deposit", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + getToken()
-    },
-    body: JSON.stringify({ amount: Number(amount) })
+// ================= USER =================
+async function loadUser(){
+  if(!token) return;
+  const res = await fetch(API+"/api/me",{
+    headers:{Authorization:"Bearer "+token}
   });
+  const d = await res.json();
+  balance.innerText = d.balance || 0;
+  subBalance.innerText = d.subBalance || 0;
+}
 
-  const data = await res.json();
-  alert(data.message);
-
+// ================= WALLET =================
+async function toSub(){
+  await fetch(API+"/api/move-to-sub",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({amount:Number(amt.value)})
+  });
   loadUser();
 }
 
-// 💸 WITHDRAW
-async function withdraw() {
-  const amount = document.getElementById("withdrawAmount").value;
-
-  const res = await fetch(API + "/api/withdraw", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + getToken()
+async function toWallet(){
+  await fetch(API+"/api/sub-to-wallet",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
     },
-    body: JSON.stringify({ amount: Number(amount) })
+    body:JSON.stringify({amount:Number(amt2.value)})
   });
-
-  const data = await res.json();
-  alert(data.message);
-
   loadUser();
 }
 
-// 🔄 TRANSFER
-async function transfer() {
-  const email = document.getElementById("transferEmail").value;
-  const amount = document.getElementById("transferAmount").value;
+// ================= MARKET =================
+async function loadMarket(){
+  const res = await fetch(API+"/api/market");
+  const d = await res.json();
+  market.innerText = JSON.stringify(d,null,2);
+}
 
-  const res = await fetch(API + "/api/transfer", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + getToken()
-    },
-    body: JSON.stringify({
-      email,
-      amount: Number(amount)
+// ================= TRADE =================
+async function trade(){
+  await fetch(API+"/api/trade",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      type:"P2P",
+      amount:Number(amount.value),
+      buyPrice:Number(buy.value),
+      sellPrice:Number(sell.value)
     })
   });
-
-  const data = await res.json();
-  alert(data.message);
-
-  loadUser();
+  alert("Trade executed ✅");
 }
 
-// 🚀 LOAD ON START
+// ================= PERFORMANCE =================
+async function loadPerf(){
+  const res = await fetch(API+"/api/performance");
+  const d = await res.json();
+  perf.innerText = JSON.stringify(d,null,2);
+}
+
+// ================= AUTO REFRESH =================
+setInterval(()=>{
+  loadUser();
+  loadMarket();
+  loadPerf();
+},10000);
+
 loadUser();
 
-</script>
-
-</body>
+</script></body>
 </html>
